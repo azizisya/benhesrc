@@ -1,0 +1,170 @@
+\chapter{Integration}\label{chp-int}
+\section{Outline}
+The current departmental search engine which I was to replace is based on the htDig engine, an open source simple matching engine. My brief stated that Terrier, as described in Section \ref{terrier_desc}, was to form the basis of the new website search engine. Although the search functionality provided by Terrier was fast and maturing quickly, no work had yet been done on making Terrier accessable from a webpage. Additionally, it was crucial that a format was developed such that Terrier was able to parse the files of content saved by Labrador during a crawl.
+
+\section{htDig}
+The Department of Computing Science website has been using the now outdated HTTP search engine known as htDig\cite{web1} for providing its search results to users. htDig provides basic search functionality, with a combination of algorithms: exact, soundex, metaphone, stemming and synonyms.\\
+\ \\
+However, htDig lacks certain key abilites that are important in the current generation of search technology:
+\begin{itemize}
+\item{The ability to crawl and index documents which are not HTML or plain text. This was a fundamental part of my project due to the high frequency of Adobe Acrobat (PDFs) and Postscript files on websites.}
+\item{It lacks any modern link-analysis, such as the PageRank\cite{Lawrence981} algorithm used by Google\cite{ref7}. Link analysis is cruical for indentifying authoritive sites for a given topic.}
+\item{Finally, htDig lacks performance and ease of configurability.}
+\end{itemize}	
+
+\section{Terrier}
+\subsection{Crawls}
+To ensure that Terrier was correctly able to index the web pages Labrador saved, I had to interact with the Terrier developer, to meet his needs. It was decided to primarily follow the indexing format used by the DOTGOV\cite{site2}, WT2G and WT10G\cite{site3} collections, from the TREC competition, with some extensions. The format is given below.
+\renewcommand{\baselinestretch}{1.0}
+\begin{verbatim}
+<DOC>
+<DOCNO>G00-00-0000000</DOCNO>
+<DOCHDR>
+http://www.aspe.hhs.gov
+HTTP/1.0 200 OK
+Date: Wed, 30 Jan 2002 17:00:23 GMT
+Server: WebSitePro/3.0.37
+Accept-ranges: bytes
+Content-type: text/html
+Last-modified: Fri, 18 Jan 2002 19:04:17 GMT
+Content-length: 8228
+</DOCHDR>
+...Document content...
+</DOC>
+\end{verbatim}
+\renewcommand{\baselinestretch}{1.5}
+Labrador also provides links and redirect data files, which make link analysis, such as PageRank\cite{Lawrence981}, easier for Terrier to perform. Links files contain the outgoing links and anchor texts of each link on every page of the crawl, while the redirect files contains a list of redirects found during the crawl. The links files assists Terrier by performing the link extraction it would have had to perform itself, while Labrador has already performed it. Redirect files assist link analysis by identifying slightly incorrect links, e.g. a link to http://a/b can be seen as http://a/b/ which is what it was intended to be, because the former URL redirected to the latter.
+
+\subsection{Matching Models}\label{sect-terriermatching}
+Terrier provides nearly 50 matching models, including many Divergance from Randomness (DFR) models\cite{ref14}. However, Terrier has been optimised for the Poisson-based PL2\cite{ref13,ref14} model, as shown below, and it is this model that Terrier uses for the collections I have crawled.\\
+PL2: \indent \begin{equation}\label{pl2} w(t,d) = \frac{1}{tfn +1}(tfn \cdot \log_2 \frac{tfn}{\lambda} + (\lambda + \frac{1}{12.tfn} - tfn) \cdot \log_2 e + 0.5 \cdot \log_2(2\pi \cdot tfn))\end{equation}\\
+where $tfn$ is the normalised term frequency. It is given by the
+%\emph{normalisation 2} \cite{amati03thesis}:
+\begin{equation}\label{eNormalisation2}
+    tfn=tf\cdot\log_2(1+c\cdot\frac{avg\_l}{l})
+\end{equation}
+\ \\
+He and Ounis\cite{ref13} describe a method where the parameters of the DFR matching model can be optimised pre-retrieval for queries of different clusters. In Section \ref{sect-evalpl2}, I shall show how the parameters for the PL2 matching model required altering as the size of the collection grew.
+
+\section{Using Terrier as a HTTP search engine backend}
+A requirement of my project was that Terrier should provide the search results for the departmental websites. To this end, although fast, Terrier only had interfaces for searching its indexes in a batch mode. Hence the first challenge was to provide a suitable API to Terrier via client code.
+
+\subsection{HTTP querying Terrier}
+
+When initialised with a large index, Terrier can be a large, resource heavy system. Hence I deemed it unsuitable to run on the department's main webserver, where it would use more than its fair share of memory and disk space. Therefor I separated the rendering of the results from the querying of the index. This meant that Terrier should be run as backend on a suitable departmental server, while only a small light frontend script would run on the main webserver. The frontend would be responsible for rendering the results to HTML and caching results of queries. This meant that the loading of the main departmental webserver was minimised.\\
+\ \\
+The best inter-machine protocol, is of course HTTP and I decided that Terrier should be queried for a set of results as shown:\\
+\indent http://wokam.dcs.gla.ac.uk:8000/servlet/terrier?q=information+retrieval
+\ \\
+Of course, a custom network protocol could have been devised, or an alternative technology such as RMI could have been used to effect the inter-process communication across the network. However, RMI would have required that the frontend was written in Java. Alternatively, to design and implement a custom network protocol would have added extra development time that was unnecessary.\\
+\ \\
+\subsection{XML Results}
+When called as shown above, Terrier renders all its results for the query to an XML page. XML was chosen as there are parsers available for all languages on most platforms (from Perl and Python, to Java and C), meaning it enforced no restriction on the implementation of the frontend.\\
+\ \\
+Furthermore, XML allows a hierarchical data structure, as opposed to a flat data format, as would likely have been produced with a textual data format. Hierarchical data format would be useful in this context if results were required to be grouped hierarchically in some way. Some search engines do similarly for `Similar Pages' results.\\
+\ \\
+In Terrier's XML schema, some fields are optional, for example the description tag which is only produced if the Meta Indexer module managed to produce an description for the document. Due to the nature of XML, the schema can be extended in the future and existing client applications will ignore tags of which they have no knowledge. Other XML technologies, such as XSLT, allow further flexibilty with the Terrier results in the future.\\
+\ \\
+When a query is entered, the frontend calls the Terrier backend over HTTP to retrieve the results the first time only. After that, the XML is cached on the webserver by the frontend script. As many queries provide many more results that could be fitted on one HTML page, this saves the frontend calling Terrier to retrieve results number 11-20 etc.\\
+\ \\
+The XML format that Terrier returns was agreed between the Terrier developer and myself. It provides a rich interface into the results provided by Terrier. Results scores, matching type used, URL, document titles and descriptions are provided in the XML. The Terrier DTD can be found in Appendix \ref{terrier_dtd}.\\
+
+\renewcommand{\baselinestretch}{1.0}
+\begin{verbatim}
+<terrier>
+  <query method="PL2b7.0">iadh ounis</query>
+  <results count="333">
+  <result number="0" docid="D13-25-50">
+    <score>21.710036430488714</score>
+    <url>www.dcs.gla.ac.uk/~ounis/bib.html</url>
+    <title>Iadh Ounis Selected Publications </title>
+    <description>Iadh Ounis Selected Publications Legal notice The documents 
+    distributed by this server have been provided by the contributing authors
+    as a means to ensure timely dissemination of scholarly and technical work
+    on a noncommercial basis.Copyright and all rights therein are maintained
+    by the authors or by other copyright holders,</description>
+  </result>
+
+  <result number="1" docid="D13-25-48">
+    <score>20.265398126400385</score>
+    <url>www.dcs.gla.ac.uk/~ounis/bibbooks.html</url>
+    <title>More Articles </title>
+    <description>More Articles Legal notice The documents distributed by this
+    server have been provided by the contributing authors as a means to ensure
+    timely dissemination of scholarly and technical work on a noncommercial 
+    basis. Copyright and all rights therein are maintained by the authors or 
+    by other copyright holders,notwithstanding that </description>
+  </result>
+
+  <result number="2" docid="D13-25-49">
+    <score>19.200592430026365</score>
+    <url>www.dcs.gla.ac.uk/~ounis/bibreports.html</url>
+    <title>Iadh Ounis Selected Publications </title>
+    <description>Technical Reports and Draft Publications Legal notice The 
+    documents distributed by this server have been provided by the contributing
+    authors as a means to ensure timely dissemination of scholarly and technical
+    work on a noncommercial basis.Copyright and all rights therein are maintained
+     by the authors or by other copyright </description>
+  </result>
+
+  <result number="3" docid="D12-36-41">
+    <score>18.089029243406326</score>
+    <url>www.dcs.gla.ac.uk/ir/terrier/publications.html</url>
+    <title>Terrier Publications </title>
+    <description> The following publications are the result of the development of
+    Terrier Vassilis Plachouras,Iadh Ounis and Gianni Amati.A Utility-oriented Hyperlink
+    Analysis Model for the Web.In Proceedings of the First  Latin Web Conference Santiago,
+    Chile,2003.Ben He and Iadh Ounis.A study of parameter tuning for term </description>
+  </result>
+  
+  <result 
+....
+  </result>
+
+</results>
+</terrier>
+\end{verbatim}
+\renewcommand{\baselinestretch}{1.5}
+The XML format also has optional fields, allowing additional features such as spelling correction to be provided by the frontend only when Terrier suggests it (and it is enabled).
+
+\section{Frontend}
+The frontend is responsible for querying Terrier by HTTP, parsing the XML results that Terrier returned and filtering the results down to only those needed for the current page. It then generated a data structure that was combined with a template to produce the resultant HTML page.\\
+\ \\
+The frontend also cached XML results for a query to its local disk (using the GDBM persistent hash library), so that the frontend had no need to re-query Terrier to retrieve results for subsequent pages of a query. The frontend provides a simple CGI API, allowing the web developer some flexability in how results are rendered, described in Table \ref{tbl-frontendparam}. A screenshot of the front end can be seen in Figure \ref{fig-frontend}.
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\bf{Variable name} & \bf{Description} \\
+\hline
+query & Search engine string to search for \\
+\hline
+startpage & Page number to display \\
+\hline
+perpage & Number of results to put on one page \\
+\hline
+template & Which of the allowed templates to use to render the results \\
+\hline
+\end{tabular}
+\caption{Querystring CGI Parameters provided by the Frontend}\label{tbl-frontendparam}
+\end{center}
+\end{table}
+\subsection{Templates}
+I built the frontend CGI scripts to use HTML templates. This means that no actual HTML code is embedded in the actual source code of the scripts. These have several advantages, listed below:
+\begin{itemize}
+\item{Development on source code and templates can be done separately, given a stable template API.}
+\item{The client-side developer need not know how to program in the language of the CGI script.}
+\item{Alternate templates can be used without modifying the source code-base. This is as simple as changing the template CGI parameter, as described above.}
+\item{The source code is simpler and clearer because there is no extraneous code related to rendering.}
+\end{itemize}
+The fundamentals behind using an HTML templating language is that the template file includes the majority of the HTML source. The variables names within the template file are substituted with the data of the same name that is passed to the templating engine. Further flexibility is available by the introduction of features such as file includes, loops and conditional branches. Template variables and loops are passed to the templating engine as hash tables and arrays.
+
+\subsection{Other Features}
+The frontend has support for additional features, which are also provided for in the XML schema, but not currently implemented in Terrier. An example of this is the support for query suggestions. Sau Kwan Chan has recently been working on methods for correcting misspelt words in queries. My frontend CGI scripts will render query suggestions to the HTML, if there are any. At time of writing, Sau's suggestion work is not yet sufficiently mature to be integrated with Terrier on a production installation.
+\begin{figure}[h]
+  \centerline{
+    \psfig{figure=images/frontend.eps,height=9in}
+   }
+\label{fig-frontend}
+\caption{Frontend using DCS Skin}
+\end{figure}

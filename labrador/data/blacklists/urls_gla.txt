@@ -1,0 +1,13 @@
+http://tuba.music.gla.ac.uk/
+http://sherekhan.physics.gla.ac.uk/
+http://www.stats.gla.ac.uk/cgi-bin/parser.pl
+http://www.dcs.gla.ac.uk/cgi-bin/betsie/parser.pl
+http://www.maths.gla.ac.uk/cgi-bin/parser.pl
+http://www.earthsci.gla.ac.uk/cgi-bin/betsie/parser.pl
+http://www.gla.ac.uk/cgi-bin/betsie/parser.pl
+http://genome1.beatson.gla.ac.uk/cgi-bin/Calcium-3.0
+http://ltsn.mathstore.gla.ac.uk/events_diary/index.asp
+http://www.astro.gla.ac.uk/users/paulm/WRT/
+http://www.arts.gla.ac.uk/forum/
+http://www.elec.gla.ac.uk/forums/
+http://balabio.dcs.gla.ac.uk:8180/

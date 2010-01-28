@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/src_links"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/terrier2"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/trove.jar"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/log4j.jar"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/commons-lang.jar"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/PDFBox.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/src_common"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/src_statistics"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

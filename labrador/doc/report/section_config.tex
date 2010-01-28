@@ -1,0 +1,161 @@
+\chapter{Sample Configuration File}\label{appndx-config}
+\renewcommand{\baselinestretch}{1.0}
+\begin{verbatim}
+#This is the global configuration file for Labrador Web Crawler
+#for crawling all externally available hosts in gla.ac.uk
+
+#if omitted, defaults to folder above binary (../)
+Base /local/terrier_tmp/macdonch/labrador/
+
+#what port to run the dispatcher on, default 2680
+DispatcherPort 2680
+
+#number of subcrawlers to fork on each machine
+ForksPerCrawler 4
+
+#the MD5 of the password that must be send before admin
+#privilege commands are allowed to be executed
+AdminPassword LczRqz4DmQrqdzWYMchcog
+
+#minumum number of seconds between each request to a
+#given hostname
+HostDelay 3
+
+ObtainURLs data/rootsets/rootset_gla1.txt
+
+#days until a robots.txt file expires
+RobotsTxtExpiry 25
+
+#File to log all dispatcher communications to 
+#DispatcherCommsLog data/comms.txt
+
+#where to put a robots.txt cache directory
+#RobotsTxtCache data/robots.txt/
+
+#URL allocation - eg DFS, BFS etc
+#implementation detail - BFS adds to end of main queue,
+#DFS adds to start
+URLAlloc BFS
+
+#takes from the head of the main queue, and allocates
+#each URL to a crawler host
+#this only encapsulates data manipulation, not storage
+
+#we're using a partitioned crawl
+CrawlerAlloc Partitioned
+
+#URLFilter ModuleHandler (params)
+URLFilter Regexp URL =~ ^http(?:s?)://(?:[A-Za-z0-9\-.]+)\.gla\.ac\.uk
+URLFilter File Whitelist Host data/whitelists/hosts_gla.txt
+URLFilter File Blacklist Host data/blacklists/hosts_gla.txt
+URLFilter File Blacklist Extension data/blacklists/extensions_gla.txt
+URLFilter File Blacklist URL data/blacklists/urls_gla.txt
+#dont follow links into any calendar type web pages
+URLFilter Regexp Querystring !~ calendar
+
+#next two are fairly self-explanatory - basically crawler trap protection
+URLFilter URLDepth 15 
+URLFilter Length 1024
+
+
+#DNS prelookup - disabled for small crawls
+#we want DNSlookup to be last
+#URLFilter DNSLookup 
+#passes to another process across a pipe or a 
+#socket to perform async lookups, ignores result
+
+
+#limit request to same filename with different querystring
+#currently only enabled with Manager Partitioned
+MaxFilenameRequests 200
+
+DataPersistence Hash GDBM_File
+DataPersistence Array Tie::File
+PersistenceCheckpointEvery 1200
+
+#end the crawl after successfully downloading MaxCrawlURLs urls
+#defaults to 0, which means unlimited
+MaxCrawlURLs 0
+
+
+#FROM HERE DOWN IS FOR THE SUBCRAWLERS
+#run a partitioned crawl
+Manager Partitioned
+PartitionedAlloc Delay
+Partition SeenHost
+
+#Proxy server details
+#SpiderProxy http://wwwcache.dcs.gla.ac.uk:8080
+#SpiderProxyUsername
+#SpiderProxyPassword
+
+#required - the HTTP Header name field each spider should give
+SpiderName Labrador
+
+#Required
+SpiderVersion 0.2
+
+#required - the HTTP Header email field each spider should give
+SpiderEmail macdonch@dcs.gla.ac.uk
+
+#content filters
+#NB: these must contains ContentTypes and MetaRobots (in that
+#order) unless you are absolutely positive you know what you
+#are doing
+ContentFilter ContentTypes
+ContentFilter MetaRobots
+ContentFilter Fingerprint #prevents duplicate documents being indexed or followed
+ContentFilter Binary #ignore any files containing the null character
+
+MD5Fingerprints 1
+
+#LWP activity timeout - try to keep a decent url rate up!
+Timeout 5
+
+#limit the size of each crawler before it retires
+#MaxCrawlerRequests 400
+
+#List of HTML tags which contain links to follow
+#other possible options are img:
+FollowTagLinks a area meta link
+
+#content types to index
+IndexContentTypeWhitelist text/html text/plain application/xhtml+xml \
+ application/postscript application/pdf text/xml 
+
+#content types to process for links
+FollowContentTypeWhitelist text/html application/xhtml+xml text/xml
+
+#ContentHandler HandlerModule (params?)
+ContentHandler PreTerrier /local/terrier_tmp/macdonch/crawls/crawl_gla/saved/
+
+
+#SpiderSyncStats time in seconds to tell the dispatcher your stats
+#default 3600 (1 hour)
+SpiderSyncStats 60
+
+#Where to save access logs to
+SpiderAccessLog /local/terrier_tmp/macdonch/crawls/crawl_gla/logs/access-%H-%P.log
+
+#Format of log files
+# %a - Remote IP address
+# %A - Remote hostname
+# %d - sprintf standard date format
+# %f - Filename
+# %p - Remote port
+# %T - Time taken to make request
+# %t - Current epoch time
+# %m - Request method
+# %q - Querystring
+# %U - entire URL requested
+# %u - URI of request
+# %s - HTTP status code
+# %S - Protocol scheme (eg http, https)
+# %r - Referring URL
+# %c - Size of content downloaded uncompressed (excluding headers)
+# %C - Size of content downloaded compressed (excluding headers)
+# %P - PID of requesting crawler
+# %H - the hostname of the requesting crawler
+SpiderAccessLogFormat "%t %s %c %A %u %U %b %B %T"
+\end{verbatim}
+\renewcommand{\baselinestretch}{1.0}

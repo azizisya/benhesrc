@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path=""/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/stat.jar"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/smooth.jar"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/trove.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/terrier2"/>
+	<classpathentry kind="output" path=""/>
+</classpath>

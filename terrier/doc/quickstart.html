@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Installing and Running Terrier</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" href="docs.css">
+</head>
+
+<body>
+<!--!bodystart-->
+[<a href="whats_new.html">Previous: What's New</a>] [<a href="index.html">Contents</a>] [<a href="basicComponents.html">Next: Terrier Components</a>]
+<table width="100%">
+  <tr>
+    <td width="82%" valign="bottom"><h1>Installing and Running Terrier</h1></td>
+	<!--!bodyremove-->
+    <td width="18%"><a href="http://ir.dcs.gla.ac.uk/terrier/"><img src="images/terrier-logo-web.jpg" border="0"></a></td>
+	<!--!/bodyremove-->
+  </tr>
+</table>
+<p align="justify">If you are interested to use Terrier straight away in order 
+  to index and retrieve from standard test collections, then you may follow the 
+  steps described below. We provide step-by-step instructions for the installation of
+  Terrier on Linux and Windows operating systems and guide you through your first indexing and  
+  retrieval steps on the TREC WT2G test collection.</p> 
+
+<h2>Terrier Requirements</h2>
+<p align="justify">Terrier's single requirement consists of an installed Java JRE 1.5.0 or higher. You can download
+the JRE, or the JDK (if you want to develop with Terrier), from the <a href="http://java.sun.com/javase/downloads/">Sun Java website</a>.</p>
+
+<h2>Download Terrier</h2>
+<p align="justify">
+A copy of Terrier version 2.2 can be downloaded from the University of Glasgow
+at the following location: [<a href="http://ir.dcs.gla.ac.uk/terrier/">Terrier Home</a>].
+The site offers pre-compiled releases of the newest and previous Unix and Windows versions of Terrier. </p>
+
+<h2>Step by Step Unix Installation</h2>
+<p align="justify">
+After having downloaded Terrier, copy the file to the directory where you 
+want to install Terrier. Navigate to this directory and execute the following 
+two commands to unzip and untar the binary:</p>
+<pre>gunzip terrier-2.2.tar.gz</pre>
+<pre>tar -xvf terrier-2.2.tar</pre>
+
+<p align="justify">This will result in the creation of a terrier directory in your current 
+directory. Next we will have to make sure that you have the correct Java version
+available on the system. Type: </p><pre>echo $JAVA_HOME</pre>
+<p align="justify">If the environment variable $JAVA_HOME is set, this command will output the 
+path of your Java installation. (e.g. /usr/java/jre1.5.0). If this command shows that you have a correct Java version (1.5.0 or higher) installed then your all done. 
+If your system does not meet these requirements you can download a Java 1.5 from the <a href="http://www.java.com/en/download/help/5000010500.xml">Sun JRE 1.5 Linux download website</a>
+and set the environment variable by including the following line either in your
+/etc/profile or ~/.bashrc files:</p>
+<pre>export JAVA_HOME="Absolute_Path_of_Java_Installation"</pre>
+
+<h2>Step by Step Windows Installation</h2>
+<p align="justify">
+In order to be able to use Terrier you simply have to extract the contents of
+the downloaded Zip file into a directory of your choice.
+Terrier requires Java version 1.5 or higher. If your system does not meet this
+requirements you can download an appropriate version from the <a href="http://www.java.com/en/download/manual.jsp"> Sun JRE download website</a>.</p>
+
+<h2>Using Terrier</h2>
+<p align="justify">Terrier comes with three applications:</p>
+
+<h3>Batch (TREC) Terrier</h3>
+<p align="justify">This allows you to easily index, retrieve, and evaluate results on TREC collections. In the next paragraph we provide you with a step-by-step tutorial of how to use this application. </p>
+<h3>Interactive Terrier</h3>
+<p align="justify"> This allows you to to do interactive retrieval.
+This is a quick way to test Terrier. Given that you have installed Terrier on
+Windows you can start Interactive Terrier by executing the <tt>interactive_terrier.bat</tt>
+file in Terrier's <tt>bin</tt> directory. On a Unix system or Mac you can run interactive Terrier by executing the <tt>interactive_terrier.sh</tt> file. You can configure the retrieval functionalities of InteractiveTerrier using properties described in the <a href="javadoc/uk/ac/gla/terrier/applications/InteractiveQuerying.html">InteractiveQuerying</a> class.
+</p>
+<h3>Desktop Terrier</h3>
+<p align="justify">A sample Desktop search application. If you are interested in getting to know more about it you should take a look at its <a href="terrier_desktop.html">tutorial</a>.</p>
+
+
+
+<h2>Tutorial: How to use the Batch (TREC) Terrier</h2>
+
+<h3>Indexing</h3>
+<p align="justify">
+This guide will provide step-by-step instructions for using Terrier to index 
+a TREC collection. We assume that the operating system is Linux, and that 
+the collection, along with the topics and the relevance assessments (qrels), is 
+stored in the directory <tt>/local/ir.collections2/WT2G/</tt>.</p>
+
+<p align="justify">1. Go to the Terrier folder.</p>
+<pre>cd terrier</pre>
+
+<p align="justify">2. Setup Terrier for using a TREC test collection by calling</p>
+<pre>./bin/trec_setup.sh "Absolute_Path_To_Collection_Files"</pre>
+in our example:
+<pre>./bin/trec_setup.sh /local/ir.collections2/WT2G/</pre>
+<p align="justify">
+This will result in the creation of a <tt>collection.spec</tt> file containing a 
+list of the files in the specified directory in the "etc" directory.
+</p>
+
+<p align="justify">3. If necessary, modify the <tt>collection.spec</tt> file.
+ This might be required if the collection directory contained files that you don't 
+ want to index. You can do this by using:
+ </p>
+<pre>find /local/ir.collections2/WT2G/ -type f | grep -v info > etc/collection.spec</pre>
+
+<p align="justify">4. Now we are ready to actually begin the indexing of the collection.</p>
+<pre>./bin/trec_terrier.sh -i</pre>
+<p align="justify">&nbsp;&nbsp;<small><b>NB:</b> If you don't need the direct file, e.g. for query expansion, then you can use <tt>bin/trec_terrier.sh -i -j</tt> for the faster single-pass indexing introduced for Terrier 2.0</small></p>
+
+<p align="justify">5. If we want to use Ponte &amp; Croft's language modelling approach, we need to direct Terrier to build additional indices using the "-l" parameter. </p>
+<pre>./bin/trec_terrier.sh -i -l</pre>
+
+<h3>Retrieval</h3>
+
+
+<p align="justify"> In order to perform retrieval from the just indexed
+test collection, follow the steps described below.</p>
+
+<p align="justify">1. First of all we have to do some configuration. 
+You can either manually edit the <tt>trec.topics.list</tt> file in the etc directory or
+make use of the following command.<p>
+<pre>echo /local/ir.collections2/WT2G/info/topics.401-450 >> etc/trec.topics.list</pre>
+
+<p align="justify">2. Next we have to specify where Terrier will find
+the query relevance assessments file. You can do this by calling:</p>
+<pre>echo /local/ir.collections2/WT2G/info/qrels.trec8.small_web.gz >> etc/trec.qrels</pre>
+
+<p align="justify">3. Now we specify the retrieval model we want to use.
+In this case we will use the DFR model called PL2 for ranking documents.</p>
+<pre>echo uk.ac.gla.terrier.matching.models.PL2 > etc/trec.models</pre>
+
+<p align="justify">4. Now we will start retrieval and also set a parameter (i.e the c parameter of the model to
+the value of 10.99) from the command line. The "-r" parameter instructs Terrier to perform retrieval. The "-c" option is
+used to specify the value of the "c" parameter. 
+(To learn more about the model see <a href="dfr_description.html">the description of the DFR framework</a>).</p>
+<pre>./bin/trec_terrier.sh -r -c 10.99</pre>
+<p align="justify">If all goes well this will result in a <tt>.res</tt> file in the <tt>var/results</tt> directory called: <tt>InL2c10.99_0.res</tt>.
+</p>
+<p align="justify">5. Now we will evaluate the obtained results by using the "-e" parameter.</p>
+<pre>./bin/trec_terrier.sh -e</pre>
+<p align="justify">
+Terrier will look at the var/results directory, evaluate each .res file and save the output in a 
+.eval file named the same as the corresponding .res file.
+</p>
+
+<p align="justify">2. Now we will perform retrieval again but this time we enable query expansion (QE) by using the "-r" parameter. See <a href=http://ir.dcs.gla.ac.uk/wiki/QueryExpansion>Information Retrieval Wiki page on Query Expansion</a> for more information about QE. Note that your index must have a direct index structure to support QE. A direct index is built by not built by default by single-pass indexing (see <a href="configure_indexing.html">Configuring Indexing</a> for more information). Afterwards we can run the evaluation again by using trec_terrier.sh with the "-e" parameter.</p>
+<pre>./bin/trec_terrier.sh -r -q -c 10.99</pre>
+<pre>./bin/trec_terrier.sh -e</pre>
+
+
+<p align="justify">5. Now we can look at all the Mean Average Precision (MAP) values of the runs by executing:</p>
+<pre>tail -1 var/results/*.eval</pre>
+
+<p align="justify">The obtained MAP for the first run should be 0.3140.</p>
+<p align="justify">The obtained MAP for the run using query expansion should be 0.3305</p>
+<!Map for the Terrier 1.0.2 version is 0.3160>
+
+
+
+
+
+[<a href="whats_new.html">Previous: What's New</a>] [<a href="index.html">Contents</a>] [<a href="basicComponents.html">Next: Terrier Components</a>]
+<!--!bodyend-->
+<hr>
+<small>
+Webpage: <a href="http://ir.dcs.gla.ac.uk/terrier">http://ir.dcs.gla.ac.uk/terrier</a><br>
+Contact: <a href="mailto:terrier@dcs.gla.ac.uk">terrier@dcs.gla.ac.uk</a><br>
+
+<a href="http://www.dcs.gla.ac.uk/">Department of Computing Science</a><br>
+<a href="http://ir.dcs.gla.ac.uk/">Information Retrieval Group</a><br>
+
+Copyright (C) 2004-2008 <a href="http://www.gla.ac.uk/">University of Glasgow</a>. All Rights Reserved.
+</small>
+</body>
+</html>

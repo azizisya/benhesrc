@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Terrier Overview</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" href="docs.css">
+</head>
+
+<body>
+<!--!bodystart-->
+[<a href="index.html">Contents</a>] [<a href="whats_new.html">Next: What's new</a>]
+<table width="100%">
+  <tr> 
+    <td width="82%" valign="bottom"><h1>Terrier Features</h1></td>
+	<!--!bodyremove-->
+    <td width="18%"><a href="http://ir.dcs.gla.ac.uk/terrier/"><img src="images/terrier-logo-web.jpg" border="0"></a></td>
+	<!--!/bodyremove-->
+  </tr>
+</table>
+<p align="justify">Below, you can find a succinct list of features offered by Terrier.
+<h3>General</h3>
+<ul>
+<li>Indexing support for common desktop file formats, and for commonly used TREC research collections (e.g. TREC CDs 1-5, WT2G, WT10G, GOV, GOV2, Blogs06).</li>
+<li>Many document weighting models, such as many parameter-free Divergence from Randomness weighting models, Okapi BM25 and language modelling.</li>
+<li>Conventional query language supported, including phrases, and terms occurring in tags.</li>
+<li>Handling full-text indexing of large-scale document collections, in a centralised architecture to at least 25 million documents, and using the Hadoop Map Reduce distributed indexing scheme for even larger collections.</li>
+<li>Modular and open indexing and querying APIs, to allow easy extension for your own applications and research.</li>
+<li>Active Information Retrieval research fed into the Open Source platform.</li>
+<li>Open Source (Mozilla Public Licence).</li>
+<li>Written in cross-platform Java - works on Windows, Mac OS X, Linux and Unix.</li>
+<li>Large user-base over 4 years of public release.</li>
+</ul>
+
+<h3>Indexing</h3>
+<ul>
+<li> Out-of-the box indexing of tagged document collections, such as the TREC test collections. </li>
+<li> Out-of-the box indexing for documents
+  of various formats, such as HTML, PDF, or Microsoft Word,
+  Excel and PowerPoint files.</li>
+<li>Out-of-the box support for distributed indexing in a Hadoop Map Reduce setting.</li>
+<li>Indexing of field information, such as TITLE, H1, HTML tags information</li>
+<li>Indexing of position information on a word, or a block (e.g. a window of terms within a distance) level.</li>
+<li>Support for various encodings of documents (UTF), to facilitate multi-lingual retrieval.</li>
+<li>Support for fetching files to index by HTTP, allowing intranets to be easily searched.</li>
+<li>Highly compressed index disk data structures.</li>
+<li>Highly compressed direct file for efficient query expansion.</li>
+<li>Alternative faster single-pass indexing.</li>
+<li>Various stemming techniques supported, including the Snowball stemmer for European languages.</li>
+</ul>
+
+<h3>Retrieval</h3>
+<ul>
+<li>Provides standard querying facilities, as well as Query Expansion (pseudo-relevance feedback)</li>
+<li>Can be applied in interactive applications, such as the included <a href="terrier_desktop.html">Desktop Search</a>, or in
+a batch setting for research &amp; experimentation.</li>
+<li>Provides many standard document weighting models, including up to 126 Divergence From Randomness (DFR) document ranking models, and other models such as Okapi BM25, language modelling and TF-IDF. The new DFRee DFR weighting model is also included, which provides robust performance on a range of test collections without the need for any parameter tuning or training.</li>
+<li>Advanced <a href="querylanguage.html">query language</a> that supports Boolean operators, +/- operators, phrase and proximity search, and fields.</li>
+<li>Provides a number of parameter-free DFR term weighting models for automatic query expansion, in addition to Rocchio's query expansion.</li>
+<li>Flexible processing of terms through a pipeline of components,
+  such as stop-words removers and stemmers.</li>
+</ul>
+
+<h3>Experimentation</h3>
+<ul>
+<li>Handles all currently available TREC test collections - see <a href="trec_examples.html">TREC Experimentation Examples</a> for examples and known settings.</li>
+<li>Easily scriptable to evaluate many parameter settings, or many weighting models in batch form.</li>
+<li>In-built <a href="evaluation.html">evaluation tools</a> for use with TREC ad-hoc and known-item search
+  retrieval results, to produce various Precision and Recall measures.</li>
+</ul>
+
+
+<p></p>
+[<a href="index.html">Contents</a>] [<a href="whats_new.html">Next: What's new</a>]
+<!--!bodyend-->
+<hr>
+<small> Webpage: <a href="http://ir.dcs.gla.ac.uk/terrier">http://ir.dcs.gla.ac.uk/terrier</a><br>
+Contact: <a href="mailto:terrier@dcs.gla.ac.uk">terrier@dcs.gla.ac.uk</a><br>
+<a href="http://www.dcs.gla.ac.uk/">Department of Computing Science</a><br>
+Copyright (C) 2004-2008 <a href="http://www.gla.ac.uk/">University of Glasgow</a>. 
+All Rights Reserved. </small>
+</body>
+</html>

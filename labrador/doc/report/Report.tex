@@ -1,0 +1,133 @@
+\documentclass[11pt]{report}
+\usepackage{epsfig}
+\usepackage{url}
+\usepackage{pslatex}
+\usepackage{fullpage}
+\usepackage{moreverb}
+\usepackage{supertabular}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
+\oddsidemargin -7mm 
+\textheight 9.0in
+\textwidth 15.3cm \setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{4} \pagestyle{myheadings}
+
+\def \baselinestretch{1,2}
+
+\usepackage{calc}
+\newlength{\topspace}
+\setlength{\topspace}{0in}
+
+%turn on 1.5 line spacing
+\renewcommand{\baselinestretch}{1.5}
+
+\begin{document}
+
+
+\begin{titlepage}
+{\sffamily
+	\begin{minipage}{0.3 \columnwidth}
+	\psfig{figure=images/crest.ps,width=1.2in}
+	\end{minipage}
+	\begin{minipage}{0.55 \columnwidth}
+	\noindent \rule{\linewidth}{0.25mm}
+	\begin{center}
+	{\Large{Department of Computing Science \\ \ \\ University of Glasgow \\
+Lilybank Gardens\\
+Glasgow G12 8QQ\\ \ \\
+	{\scshape CS4H Project Report \\ Craig Macdonald, 2003/2004}}
+	
+}
+\end{center}
+\noindent 
+\rule{\linewidth}{0.25mm}
+\end{minipage}
+
+\begin{center}
+\ \\
+\ \\
+\ \\
+\ \\
+\ \\
+\ \\
+\ \\
+{\LARGE  {\bf\sffamily Labrador - a distributed web crawler \\for \\a departmental search engine}
+
+\ \\
+
+by\\
+
+\ \\
+
+{\sffamily Craig Macdonald}\\
+{\sffamily macdonch@dcs.gla.ac.uk}
+
+}
+
+\end{center}
+}
+\end{titlepage}
+\pagestyle{myheadings}
+\renewcommand{\thepage}{\roman{page}}
+
+\newpage
+%\thispagestyle{empty}
+
+\noindent I hereby give my permission for this project to be shown to other
+University of Glasgow students and to be distributed in an electronic
+format. {\bf Please note that you are under no obligation to sign this
+declaration, but doing so would help future students. }
+
+\begin{description}
+\item [Craig Macdonald] \ \\  \ \\
+\HRule
+
+\end{description}
+\addcontentsline{toc}{chapter}{Education Use Consent}
+
+\include{section_abstract}
+\newpage
+\tableofcontents
+\newpage
+
+\setcounter{page}{1}
+\renewcommand{\thepage}{\arabic{page}}
+
+
+\include{chapter_introduction}
+
+\include{chapter_background}
+
+\include{chapter_architecture}
+
+\include{chapter_politeness}
+
+\include{chapter_crawlingchallenges}
+
+\include{chapter_integration}
+
+\include{chapter_evaluation}
+
+\include{chapter_futurework}
+
+
+
+\include{chapter_conclusion}
+
+%\include{chapter_Contributions}
+
+%\include{project_Abbreviation}
+
+\bibliographystyle{biblio}
+\bibliography{biblio}
+\addcontentsline{toc}{chapter}{Bibliography}
+
+\appendix
+\addcontentsline{toc}{chapter}{Appendices}
+\input{section_terrierdtd}
+%\input{section_screenshot}
+\input{section_protocol}
+\input{section_config}
+
+\end{document}

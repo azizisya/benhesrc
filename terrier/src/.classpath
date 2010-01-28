@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="ImportMetaData.java" kind="src" path=""/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="D:/Program Files/eclipse/lib/antlr-2.7.4.jar"/>
+	<classpathentry kind="lib" path="D:/Program Files/eclipse/lib/gnu-trove-1.0.2.jar"/>
+	<classpathentry kind="lib" path="D:/Program Files/eclipse/lib/html-parser.jar"/>
+	<classpathentry kind="lib" path="D:/Program Files/eclipse/lib/jdbm-0.20.jar"/>
+	<classpathentry kind="lib" path="D:/Program Files/eclipse/lib/junit.jar"/>
+	<classpathentry kind="lib" path="D:/Program Files/eclipse/lib/PDFBox-0.6.6.jar"/>
+	<classpathentry kind="lib" path="D:/Program Files/eclipse/lib/poi-2.5.1-final-20040804.jar"/>
+	<classpathentry kind="lib" path="D:/Program Files/eclipse/lib/snowball-1.0.jar"/>
+	<classpathentry kind="lib" path="D:/Program Files/eclipse/lib/tm-extractors-0.4.jar"/>
+	<classpathentry kind="output" path=""/>
+</classpath>

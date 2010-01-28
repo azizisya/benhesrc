@@ -1,0 +1,30 @@
+\chapter{Introduction}
+
+\section{Preliminaries}
+This project is concerned with building a web crawler and integrating it with a pre-existing search framework and building a web frontend to the search framework.
+\section{What is a Crawler?}
+A crawler, spider or robot\footnotemark is a program designed and written to download, save and follow any links from pages on the Internet. This allows the Information Retrieval providers, commonly known as the search engines, to provide search services on the Internet, as they have already indexed the pages they have downloaded. Without a crawler, a search engine would have to download and index pages in response to each search queries, which is clearly unrealistic given the size of the Internet. \\
+\footnotetext{In this report I shall use the word crawler, but the word is interchangeable with spider or robot.}
+\ \\
+Crawlers are also used by law enforcement organisations to monitor the Internet web pages with criminal elements and many smaller tasks, including some less acceptable uses, such as crawling to obtain email addresses.\\
+\ \\
+Current generation commercial crawlers, such as that used by Google, do not download every page on the Internet due to the prohibitively large storage requirements and network costs involved. Therefore effort is spent ensuring that the best pages are downloaded earlier, increasing the likelihood of having downloaded the best pages when the crawl is terminated.\\
+
+\section{Difficulties in writing a crawler}
+Although fundamentally a simple program, many additional requirements make a scalable high-performance crawler a difficult challenge. Firstly, there are several de-facto protocols that must be observed to ensure that your crawler is seen as polite when crawling a website. The robots.txt and Meta-Robots standards are designed such that crawlers can determine whether the webmaster of that site or page wishes it to be crawled or not. Secondly, crawlers should be polite in their usage of a given host. Overloading any one host will make the owner of the crawler unpopular, which could possibly result in it being banned from connecting to that site again. This is counter-productive, as the content of that site is then unavailable to users of the search engine.To this end, crawlers must leave a gap of seconds between fetches from individial hosts. In Labrador this is known as Host Delay.\\
+\ \\
+The crawler should be scalable, such that it can maintain a respectable rate of fetches each second in order to cope with the huge size of the web. To fetch billions of documents (the current perceived size of the Internet), the crawler must be able to achieve and maintain fetch rates of several hundred URLs/second. A crawl rate of this magnitude is necessary to ensure that a reasonable Internet crawl of 1 billion documents will be completed in under a month. One month is the normal refresh period for Internet search engines.\\
+\ \\
+Crawlers also have to beware of crawler traps. Traps are sites which once the crawler starts to crawl, it may never escape, as the site will continue to generate new links. Some traps are intentional, say perhaps to trap impolite robots, or email address crawlers (for spamming purposes). Unintentional traps are mostly web frontends to large databases.
+\ \\
+\section{Labrador}
+Labrador, my crawler, was written in Perl over the academic year 2003-2004 and designed to be configurable and flexible. Labrador has been used for single site crawls and limited domain crawls of up to several millions pages. The Labrador framework is extensible and is primarily designed to be used in a distributed environment, where each machine has several crawler processes running on it concurrently and are all co-ordinated by a central process known as the dispatcher.\\
+\ \\
+To allow the crawlers to interact with the dispatcher, I had to design a suitable network protocol. The protocol while text-based, has levels of authentication and provision for allowing external programs to connect to the dispatcher to monitor the progress of the crawl. Labrador performs link extraction to perpetuate the crawl and also uses duplicate detection to prevent the same document being collected when found in different locations. Furthermore, Labrador is capable of partitioning its crawl, allocating each crawler process a partition of the URLs, which it can then crawl independently. When a crawler finds URLs out-with its own partition, they are returned to the dispatcher for allocation to another crawler.\\
+\section{Terrier}
+Terrier is an Information Retrieval framework developed by the Information Retrieval Research Group at the Department of Computing Science at Glasgow University. I was required to work with the Terrier developer, Mr Vassilis Plachouras, to ensure that crawls saved by Labrador could be indexed by Terrier.\\
+\ \\
+My overall objective for this academic year was to provide a working search engine for the Department website. To meet this objective, I had to build Labrador such that it could crawl the departmental websites and save the content. I then had to build a suitable interface to Terrier such that it could provide results to a user through a web page in a traditional search engine format.
+
+\section{Outline}
+The rest of this report describes the design and implementation of the Labrador crawler. The architecture of the system is described in Chapter \ref{chp-arch}, together with the issues affecting the development and test runs of any crawler, in Chapters \ref{chp-challenges} and \ref{chp-polite} respectively. I discuss my work on the Terrier framework and the search frontend in Chapter \ref{chp-int}. Results of crawls done within the Scottish locale are considered in relation to the scalability of the crawler in Chapter \ref{chp-eval} and suggestions are made on further work to strengthen the Labrador framework in Chapter \ref{chp-future}.

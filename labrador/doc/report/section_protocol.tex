@@ -1,0 +1,205 @@
+\chapter{Protocol Specification}\label{appndx-protocol}
+\section{Protocol Syntax}
+%\begin{singlespace}  
+%\vspace{0cm}
+%\renewcommand{\baselinestretch}{1.0}
+\begin{center}
+%\renewcommand{\baselinestretch}{1.0}
+
+\begin{supertabular}{|l|l|}
+\hline
+\bf{Client} & \bf{Server} \\
+\hline
+HELO hostname:pid & \\
+Optional header& \\
+Optional header& \\
+. & 200 Welcome hostname:pid \\
+& .\\
+\hline
+CONF &\\
+. & 201 Config follows\\
+& Config file contents\\
+& Config file contents\\
+&.\\
+\hline
+NEXT (optional no) &\\
+. & 202 URLs follow\\
+& URL linking\_URL\\
+& URL linking\_URL\\
+& URL linking\_URL\\
+&.\\
+&205 No Work \\
+\hline
+FINISHED url & \\
+url found &\\
+url found &\\
+url found &\\
+.&203 Thanks\\
+&.\\
+\hline
+ALLOWED url &\\
+.&203 OK to crawl\\
+&.\\
+&205 Denied by filters\\
+&.\\
+\hline
+ROBOTS hostname &\\
+.& 201 Robots.txt follows\\
+&Robots.txt file contents\\
+&Robots.txt file contents\\
+&Robots.txt file contents\\
+&.\\
+&209 Not yet\\
+&.\\
+\hline
+ROBOTSFILE hostname&\\
+Robots.txt file contents&\\
+Robots.txt file contents&\\
+Robots.txt file contents&\\
+.&203 Thanks\\
+&.\\
+\hline
+STATS & \\
+statname1: value &\\
+statname2: value &\\
+statname3: value &\\
+statname4: value &\\
+.&203 Thanks\\
+&.\\
+\hline
+MONITOR &\\
+.&210 Statistics Follow \\
+&Stat1Name: Stat1Value \\
+&Stat2Name: Stat2Value\\
+&.\\
+\hline
+WORK
+&.205 No Work\\
+&.\\
+&206 Work\\
+&no of clients to fork\\
+&.\\
+\hline
+FAILED url&\\
+Optional Reason&\\
+.&203 Thanks\\
+&.\\
+\hline
+NOOP&\\
+.&203 OK\\
+&.\\
+\hline
+QUIT&\\
+.&208 Bye!\\
+&<DISCONNECT>\\
+\hline
+CHECKPOINT&\\
+.&203 Ok, checkpointed\\
+&.\\
+\hline
+PAUSE&\\
+&.203 Ok\\
+&.\\
+&209 Already paused!\\
+&.\\
+\hline
+START&\\
+.&203 Ok\\
+&.\\
+&209 Not paused!\\
+&.\\
+\hline
+STOP&\\
+.&203 Ok\\
+&.\\
+\hline
+FINGERPRINT md5sum&\\
+URL&\\
+.&201 Seen Already\\
+&OtherURL\\
+&.\\
+&209 First Time Seen\\
+&.\\
+\hline
+CHECKPOINT&\\
+.&203 Ok\\
+&.\\
+\end{supertabular}
+%\renewcommand{\baselinestretch}{1.5}
+\end{center}
+%\renewcommand{\baselinestretch}{1.5}
+%\end{singlespace}
+
+\section{Verb Descriptions}
+\subsection{HELO}
+I am a client, ready to do work. Here is my unique crawler name
+
+\subsection{CONF}
+I'd like to know what my configuration should be. Can you please tell me it?
+
+\subsection{NEXT}
+Could I have some URLs to work on please? If followed by an integer, this is the number of URLs I'd like to work on, if possible.
+
+\subsection{FINISHED}
+I've finished parsing this URL. Here are the links it contained - you should add these to your queue for filtering and crawling
+
+\subsection{ROBOTS}
+Do you have the robots.txt file for hostname?
+
+\subsection{ROBOTSFILE}
+Here is the contents of the robots.txt file for hostname that I fetched. Please save it in your cache.
+
+\subsection{STATS}
+Here are my stats, add these to your totals.
+
+\subsection{MONITOR}
+Please give me all your available stats.
+
+\subsection{WORK}
+Is there any work available yet? I'd like to fork some clients to do some work for you.
+
+\subsection{NOOP}
+No operation - just checking the connection is OK. Meaningless verb.
+
+\subsection{ALLOWED}
+Can you check that this URL is allowed by the URL filters?
+
+\subsection{FINGERPRINT}
+Here is the fingerprint of this URL. Can you check if you've seen it before and if so where?
+
+\subsection{CHECKPOINT}
+Please checkpoint your data structures to disk now.
+
+\subsection{QUIT}
+This process is shutting down (or at least disconnecting). Please disconnect me.
+\subsection{PAUSE}
+Temporarily pause the crawl. May not have effect in partitioned crawls. Crawlers may timeout during an extended pause.
+\subsection{START}
+End a pause started using the PAUSE.
+\subsection{STOP}
+Terminate the crawl. May take some time to have effect in partitioned crawls.
+
+\section{Notes}
+Only HELO, NOOP and QUIT are permitted if a client hasn't logged on yet. HELO is called to logon. Additional permissions are viewable in Table \ref{tbl-commands}.
+
+\section{Return Messages}
+Return messages by the dispatcher are of the form:
+\begin{verbatim}
+StatusNumber[space]Friendly Error Message
+Optional parameters
+.
+\end{verbatim}
+Generally speaking 2xx should be success error messages, and 3xx for messages.\\
+\begin{center}
+\begin{tabular}{|l|}
+\hline
+\bf{Generic (Error) Messages}\\
+\hline
+300 Client Error (produced in software by the client)\\
+301 Unknown Command\\
+302 Unimplemented Command\\
+303 Permission Denied. (Client has insufficient privileges to execute command)\\
+304 Bad Syntax\\
+\hline
+\end{tabular}
+\end{center}

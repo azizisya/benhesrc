@@ -1,0 +1,424 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Terrier Components</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" href="docs.css">
+</head>
+
+<body>
+<!--!bodystart-->
+[<a href="quickstart.html">Previous: Installing and Running Terrier</a>] [<a href="index.html">Contents</a>] [<a href="configure_general.html">Next: Configuring Terrier</a>]
+<table width="100%">
+  <tr>
+    <td width="82%" valign="bottom"><h1>Terrier Components</h1></td>
+	<!--!bodyremove-->
+    <td width="18%"><a href="http://ir.dcs.gla.ac.uk/terrier/"><img src="images/terrier-logo-web.jpg" border="0"></a></td>
+	<!--!/bodyremove-->
+  </tr>
+</table>
+<p align="justify">
+On this page we will give an overview of Terrier's main components and their interaction.
+</p> 
+
+</table>
+
+<h2>Component Interaction</h2>
+
+
+<h3>Indexing</h3>
+<p align="justify">The graphic below gives an overview of the interaction of the main components 
+involved in the indexing process.</p>
+<br> 
+<img src="images/indexing_architecture.png" alt="Indexing Architecture Overview"/>
+<p></p>
+
+<ul>
+<li>
+A corpus will be represented in the form of a Collection object. Raw text data will be represented in the form of a Document object.
+
+</li>
+
+<li>
+The indexer is responsible for managing the indexing process. It iterates through the documents of the collection and sends each found term through a TermPipeline component.
+
+</li>
+<li>
+A TermPipeline can transform terms or removes terms that should not be indexed. 
+An example for a TermPipeline chain is <tt>termpipelines=Stopwords,PorterStemmer</tt>,
+which removes terms from the document using the
+<a href="javadoc/uk/ac/gla/terrier/terms/Stopwords.html">Stopwords</a> object,
+and then applies Porter's Stemming algorithm for English to the terms
+(<a href="javadoc/uk/ac/gla/terrier/terms/PorterStemmer.html">PorterStemmer</a>). 
+</li>
+<li>
+Once terms have been processed through the TermPipeline, they are aggregated and
+the following data structures are created by their corresponding DocumentBuilders: DirectIndex, DocumentIndex, Lexicon, and InvertedIndex.
+</li>
+<li>For single-pass indexing, the structures are written in a different order. Inverted file postings are built in memory, and committed to 'runs' when memory is exhausted. Once the collection had been indexed, all runs are merged to form the inverted index and the lexicon.</li>
+
+</ul>
+
+
+
+<h2>Retrieval</h2>
+<p align="justify">The graphic below gives an overview of the interaction of Terrier's components in
+the retrieval phase.</p> 
+
+<br>
+
+<img src="images/retrieval_architecture.png" alt="Retrieval Architecture Overview"/>
+<p></p>
+
+<ul>
+<li>
+An application, such as for example the Desktop Terrier or TrecTerrier applications,
+issues a query to the Terrier framework.
+</li>
+<li>
+In a first step the query will be parsed and an instantiation of a Query object 
+will take place.
+</li>
+<li>
+Afterwards the query will be handed to the Manager component.
+The manager firstly pre-processes the query, by applying it to the configured TermPipeline.
+</li>
+<li>
+After the Pre-Processing the query will be handed to the Matching component.
+The Matching component is responsible for initialising the appropriate 
+WeightingModel, TermScoreModifiers, and DocumentScoreModifiers. Once all
+these components have been instantiated the computation of document scores 
+with respect to the query will take place.
+</li>
+<li>
+Afterwards the Post Processing and PostFiltering takes place.
+In PostProcessing, the ResultSet can be altered in any way - for example,
+QueryExpansion expands the query, and then calls Matching again to generate
+an improved ranking of documents. PostFiltering is simpler, allowing documents
+to be either included or excluded - this is ideal for interactive applications
+where users want to restrict the domain of the documents being retrieved.
+</li>
+<li>
+Finally the ResultSet will be returned to the application component.
+</li>
+
+</ul>
+
+
+<br>
+
+
+
+
+<h2>Component description</h2>
+<p align="justify">
+Here we provide a listing and brief description of Terrier's components.
+</p> 
+
+
+
+
+<h3>Indexing</h3>
+<table border="1" width="100%">
+ <tbody>
+ 	<tr>
+	 	<th width = "20%">
+	 	<b>Name</b>
+	 	</th>
+	 	<th>
+	 <b>	Description</b>
+	 	</th>
+ 	</tr>
+ 	<tr>
+	 	<td>
+	 <b>	Collection</b>
+	 	</td>
+	 	<td>
+	 	This component encapsulates the most fundamental concept to 
+	  	indexing with Terrier - a Collection i.e. a set of documents.
+	  	See <a href="javadoc/uk/ac/gla/terrier/indexing/Collection.html">uk.ac.gla.terrier.indexing.Collection</a>
+	  	for more details.
+	 	</td>
+ 	</tr>
+ 	<tr>
+	 	<td>
+	 <b>	Document</b>
+	 	</td>
+	 	<td>
+	 	This component encapsulates the concept of a document. 
+      	It is essentially an Iterator over terms in a document.
+      	See <a href="javadoc/uk/ac/gla/terrier/indexing/Document.html">uk.ac.gla.terrier.indexing.Document</a>
+      	for more details.
+	 	</td>
+ 	</tr>
+ 	<tr>
+	 	<td>
+	 <b>	TermPipeline</b>
+	 	</td>
+	 	<td>
+	 	Models the concept of a component in a pipeline of term processors. 
+ 		Classes that implement this interface could be stemming algorithms, 
+		stopwords removers, or acronym expansion just to mention few examples.
+		See <a href="javadoc/uk/ac/gla/terrier/terms/TermPipeline.html">uk.ac.gla.terrier.terms.TermPipeline</a>
+		for more details.
+	 	</td>
+ 	</tr>
+ 	<tr>
+	 	<td>
+	 <b>	Indexer</b>
+	 	</td>
+	 	<td>
+	 	 The component responsible for managing the indexing process. It instantiates
+      	 TermPipelines and Builders. 
+      	 See <a href="javadoc/uk/ac/gla/terrier/indexing/Indexer.html">uk.ac.gla.terrier.indexing.Indexer </a>
+      	 for more details.
+	 	</td>
+ 	</tr>
+ 	<tr>
+	 	<td>
+	<b> 	Builders</b>
+	 	</td>
+	 	<td>
+	 	Builders are responsible for writing an index to disk.
+	 	See <a href="javadoc/uk/ac/gla/terrier/structures/indexing/package-summary.html">uk.ac.gla.terrier.structures.indexing package </a>
+	 	for more details.
+	 	</td>
+ 	</tr>
+ 	
+  </tbody>
+</table>
+
+
+<h3>Data Structures</h3>
+
+<table border="1" width="100%">
+ <tbody>
+ 	<tr>
+	 	<th width = "20%">
+	 <b>	Name</b>
+	 	</th>
+	 	<th>
+	 <b>	Description</b>
+	 	</th>
+ 	</tr>
+ 	<tr>
+	 	<td>
+	 <b>	BitFile</b>
+	 	</td>
+	 	<td>
+	 	A highly compressed I/O layer using gamma and unary encodings.
+	 	See <a href="javadoc/uk/ac/gla/terrier/compression/BitFile.html">uk.ac.gla.terrier.compression.BitFile</a>
+	 	for more details.
+	 	</td>
+ 	</tr>
+ 	<tr>
+	 	<td>
+	 <b>Direct Index</b>
+	 	</td>
+	 	<td>
+	 	The direct index stores the identifiers of terms that appear
+		in each document and the corresponding frequencies. It is used for automatic
+		query expansion, but can also be used for user profiling activities.
+		See <a href="javadoc/uk/ac/gla/terrier/structures/DirectIndex.html">uk.ac.gla.terrier.structures.DirectIndex</a>
+	 	for more details.
+	 	</td>
+ 	</tr>
+ 	<tr>
+	 	<td>
+	 <b>Document Index</b>
+	 	</td>
+	 	<td>
+		The document index stores information about each document for example the document length and identifier, and a
+		pointer to the corresponding entry in the direct index.
+		See <a href="javadoc/uk/ac/gla/terrier/structures/DocumentIndex.html">uk.ac.gla.terrier.structures.DocumentIndex</a>
+	 	for more details.
+ 	 	</td>
+ 	</tr>
+ 	
+ 	<tr>
+ 		<td>
+	 <b>	Inverted Index</b>
+	 	</td>
+	 	<td>
+	 	The inverted index stores the posting lists, i.e. the identifiers of the
+	 	documents and their corresponding term frequencies. Moreover it is 
+	 	capable of storing the position of terms within a document.
+	 	See <a href="javadoc/uk/ac/gla/terrier/structures/InvertedIndex.html">uk.ac.gla.terrier.structures.InvertedIndex</a>
+	 	for more details.
+	 	</td>
+ 	</tr>
+ 	<tr>
+	 	<td>
+	 <b>	Lexicon</b>
+	 	</td>
+	 	<td>
+	 	The lexicon stores the collection vocabulary and the corresponding
+	 	document and term frequencies.
+	 	See <a href="javadoc/uk/ac/gla/terrier/structures/Lexicon.html">uk.ac.gla.terrier.structures.Lexicon</a>
+	 	for more details.
+	 	</td>
+ 	</tr>
+ 
+  </tbody>
+</table>
+
+
+
+<h3>Retrieval</h3>
+
+<table border="1" width="100%">
+ <tbody>
+  <tr>
+        <th width = "20%">
+     <b>    Name</b>
+        </th>
+        <th>
+     <b>    Description</b>
+        </th>
+    </tr>
+
+ 	<tr>
+	 	<td>
+	 	<b>Manager</b>
+	 	</td>
+	 	<td>
+	 	 This component is responsible for handling/coordinating the main high-level
+ 		operations of a query. These are:
+ 		   <ul>
+		   <li>Pre Processing (Term Pipeline, Control finding, term aggregation)</li>
+		   <li>Matching</li>
+		   <li>Post-processing </li>
+		   <li>Post-filtering </li>
+		   </ul>
+		 See <a href="javadoc/uk/ac/gla/terrier/querying/Manager.html">uk.ac.gla.terrier.querying.Manager</a>
+	 	 for more details.
+		   
+	 	</td>
+ 	</tr>
+  	<tr>
+ 		<td>
+		 <b>Matching</b>
+	 	</td>
+	 	<td>
+	 	The matching component is responsible for determining which documents
+	 	match a specific query and for scoring documents with respect to a
+	 	query.
+	 	 See <a href="javadoc/uk/ac/gla/terrier/matching/Matching.html">uk.ac.gla.terrier.matching.Matching</a>
+	 	 for more details.
+	 	
+	 	
+	 	</td>
+ 	</tr>
+ 	<tr>
+ 	
+ 		<tr>
+ 		<td>
+		 <b>Query</b>
+	 	</td>
+	 	<td>
+	 	The matching component is responsible for determining which documents
+	 	match a specific query and for scoring documents with respect to a
+	 	query.
+	 	 See <a href="javadoc/uk/ac/gla/terrier/querying/parser/Query.html">uk.ac.gla.terrier.querying.parser.Query</a>
+	 	 for more details.
+	 	
+	 	
+	 	</td>
+ 	</tr>
+ 	<tr>
+ 	
+ 		<td>
+		 <b>Weighting Model</b>
+	 	</td>
+	 	<td>
+	 	The Weighting model represents the retrieval model that is used to weight
+	 	the terms of a document.
+	 	See <a href="javadoc/uk/ac/gla/terrier/matching/models/WeightingModel.html">uk.ac.gla.terrier.matching.models.WeightingModel</a>
+	 	for more details.
+	 	</td>
+ 	</tr>
+ 	</tr>
+ 		<tr>
+	 	<td>
+	 	<b>Document Score Modifiers</b>
+	 	</td>
+	 	<td>
+	    Responsible for query dependent modification document scores. 
+	    See <a href="javadoc/uk/ac/gla/terrier/matching/dsms/package-summary.html">uk.ac.gla.terrier.matching.dsms package</a>
+	 	for more details.
+	 	</td>
+ 	</tr>
+ 	<tr>
+	 	<td>
+	 	<b>Term Score Modifiers</b>
+	 	</td>
+	 	<td>
+	 	Modifies the scores of the documents for a given 
+	    set of pointers, or postings.
+	    See <a href="javadoc/uk/ac/gla/terrier/matching/tsms/package-summary.html">uk.ac.gla.terrier.matching.tsms package</a>
+	 	for more details.
+	 	</td>
+ 	</tr>
+ 	 	
+ 		
+ 	
+  </tbody>
+</table>
+
+
+
+
+
+<h3>Applications</h3>
+
+
+<table border="1" width="100%">
+ <tbody>
+ <tr>
+	 	<th width = "20%">
+	 <b>Name</b>
+	 	</th>
+	 	<th>
+	 <b>Description</b>
+	 	</th>
+ 	</tr>
+ 	<tr>	 	
+ 	<tr>
+	 	<td>
+	 	<b>Trec Terrier</b>
+	 	</td>
+	 	<td>
+	 	An application that enables indexing and querying of TREC collections.
+	 	See <a href="javadoc/TrecTerrier.html">TrecTerrier</a>
+	 	for more details.
+	 	</td>
+ 	</tr>
+ 	 	</tr>
+ 		<tr>
+	 	<td>
+	 	<b>Desktop Terrier</b>
+	 	</td>
+	 	<td>
+	 	An application that allows for indexing and retrieval of local user
+	 	content.
+	 	See <a href="javadoc/uk/ac/gla/terrier/applications/desktop/package-summary.html">uk.ac.gla.terrier.applications.desktop package</a>
+	 	for more details.
+	 	</td>
+ 	</tr>
+  </tbody>
+</table>
+<br>
+
+[<a href="quickstart.html">Previous: Installing and Running Terrier</a>] [<a href="index.html">Contents</a>] [<a href="configure_general.html">Next: Configuring Terrier</a>]
+<!--!bodyend-->
+<hr>
+
+<small>
+Webpage: <a href="http://ir.dcs.gla.ac.uk/terrier">http://ir.dcs.gla.ac.uk/terrier</a><br>
+Contact: <a href="mailto:terrier@dcs.gla.ac.uk">terrier@dcs.gla.ac.uk</a><br>
+<a href="http://www.dcs.gla.ac.uk/">Department of Computing Science</a><br>
+
+Copyright (C) 2004-2008 <a href="http://www.gla.ac.uk/">University of Glasgow</a>. All Rights Reserved.
+</small>
+</body>
+</html>

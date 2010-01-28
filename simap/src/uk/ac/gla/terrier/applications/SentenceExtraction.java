@@ -1,0 +1,670 @@
+/*
+ * Created on 11 Mar 2008
+ *
+ * To change the template for this generated file go to
+ * Window&gt;Preferences&gt;Java&gt;Code Generation&gt;Code and Comments
+ */
+package uk.ac.gla.terrier.applications;
+import uk.ac.gla.terrier.utility.ApplicationSetup;
+import uk.ac.gla.terrier.utility.Files;
+import gnu.trove.TDoubleArrayList;
+import gnu.trove.THashMap;
+import gnu.trove.THashSet;
+import gnu.trove.TIntArrayList;
+import gnu.trove.TIntDoubleHashMap;
+import gnu.trove.TIntHashSet;
+import gnu.trove.TIntIntHashMap;
+import gnu.trove.TIntObjectHashMap;
+
+import java.io.BufferedWriter;
+import java.io.CharArrayReader;
+import java.io.CharArrayWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import org.apache.log4j.Logger;
+import org.pdfbox.pdfparser.PDFParser;
+import org.pdfbox.pdmodel.PDDocument;
+import org.pdfbox.pdmodel.PDDocumentCatalog;
+import org.pdfbox.util.PDFTextStripper;
+
+import uk.ac.gla.terrier.links.MetaServer4a;
+import uk.ac.gla.terrier.matching.models.WeightingModel;
+import uk.ac.gla.terrier.matching.models.sentence.SentenceWeightingModel;
+import uk.ac.gla.terrier.querying.Manager;
+import uk.ac.gla.terrier.querying.parser.SingleTermQuery;
+import uk.ac.gla.terrier.utility.HeapSort;
+import uk.ac.gla.terrier.structures.CollectionStatistics;
+import uk.ac.gla.terrier.structures.DirectIndex;
+import uk.ac.gla.terrier.structures.DocumentIndex;
+import uk.ac.gla.terrier.structures.ExpansionTerms;
+import uk.ac.gla.terrier.structures.GenoArticle;
+import uk.ac.gla.terrier.structures.Index;
+import uk.ac.gla.terrier.structures.InvertedIndex;
+import uk.ac.gla.terrier.structures.Lexicon;
+import uk.ac.gla.terrier.structures.LexiconEntry;
+import uk.ac.gla.terrier.structures.Span;
+import uk.ac.gla.terrier.structures.ExpansionTerm;
+import uk.ac.gla.terrier.utility.SentenceParser;
+
+public class SentenceExtraction {
+	protected static Logger logger = Logger.getRootLogger();
+	
+	public static String NAMESPACE_SENTENCEMODEL = "uk.ac.gla.terrier.matching.models.sentence.";
+	
+	protected WeightingModel wModel;
+	
+	protected WeightingModel qeModel;
+	
+	protected Index index;
+	
+	protected DocumentIndex docIndex;
+	
+	protected DirectIndex directIndex;
+	
+	protected InvertedIndex invIndex;
+	
+	protected CollectionStatistics collSta;
+	
+	protected Lexicon lexicon;
+	
+	protected MetaServer4a metaServer;
+	
+	protected Manager manager;
+	
+	//protected final String referenceSign = "References";
+	
+	public SentenceExtraction(String sentwModelname, String qemodelName){
+		manager = new Manager();
+		this.index = manager.getIndex();
+		this.docIndex = index.getDocumentIndex();
+		this.directIndex = index.getDirectIndex();
+		this.invIndex = index.getInvertedIndex();
+		this.collSta = index.getCollectionStatistics();
+		this.lexicon = index.getLexicon();
+		wModel = WeightingModel.getWeightingModel(sentwModelname);
+		qeModel = WeightingModel.getWeightingModel(qemodelName);
+		wModel.setNumberOfDocuments(collSta.getNumberOfDocuments());
+		qeModel.setNumberOfDocuments(collSta.getNumberOfDocuments());
+		wModel.setNumberOfTokens(collSta.getNumberOfTokens());
+		qeModel.setNumberOfTokens(collSta.getNumberOfTokens());
+		wModel.setAverageDocumentLength(collSta.getAverageDocumentLength());
+		qeModel.setAverageDocumentLength(collSta.getAverageDocumentLength());
+		wModel.setParameter(Double.parseDouble(ApplicationSetup.getProperty("c", ""+wModel.getParameter())));
+		qeModel.setParameter(Double.parseDouble(ApplicationSetup.getProperty("c", ""+qeModel.getParameter())));
+		//sentwModel.setCollectionStatistics(collSta);
+		try{
+			metaServer = new MetaServer4a(ApplicationSetup.TERRIER_INDEX_PATH, 
+					ApplicationSetup.TERRIER_INDEX_PREFIX);
+		}catch(IOException ioe){
+			ioe.printStackTrace();
+			// System.exit(1);
+		}
+	}
+	
+	public TIntObjectHashMap<ExpansionTerm> getExpansionTerms(int[] pseudoDocids){
+		double pseudoLength = 0d;
+		for (int i=0; i<pseudoDocids.length; i++)
+			pseudoLength = docIndex.getDocumentLength(pseudoDocids[i]);
+		
+		
+		// get terms from direct index, get the top X most informative terms (at level 2?)
+		ExpansionTerms expansionTerms = new ExpansionTerms(collSta, pseudoLength, lexicon);
+		for (int d=0; d<pseudoDocids.length; d++){
+			int[][] termsInDoc = directIndex.getTerms(pseudoDocids[d]);
+			if (termsInDoc == null){
+				logger.info("document with id "+pseudoDocids[d]+" does not contain any term.");
+				continue;
+			}
+		
+			for (int i=0; i<termsInDoc[0].length; i++)
+				expansionTerms.insertTerm(termsInDoc[0][i], (double)termsInDoc[1][i]);
+			//expansionTerms.assignWeights(sentwModel.qemodel);
+		}
+		int numberOfExpandedTerms = ApplicationSetup.EXPANSION_TERMS;
+		return expansionTerms.getExpandedTermHashSet(numberOfExpandedTerms, qeModel);
+	}
+	
+	public TIntObjectHashMap<ExpansionTerm> getExpansionTerms(GenoArticle[] genoArticles){
+		double pseudoLength = 0;
+		for (int i=0; i<genoArticles.length; i++)
+			pseudoLength = genoArticles[i].getDocLength();
+		
+		// get terms from direct index, get the top X most informative terms (at level 2?)
+		ExpansionTerms expansionTerms = new ExpansionTerms(collSta, pseudoLength, lexicon);
+		for (int d=0; d<genoArticles.length; d++){
+			int[][] termsInDoc = genoArticles[d].getTerms();
+			if (termsInDoc == null){
+				logger.info("document with id "+genoArticles[d].getDocno()+" does not contain any term.");
+				continue;
+			}
+		
+			for (int i=0; i<termsInDoc[0].length; i++)
+				expansionTerms.insertTerm(termsInDoc[0][i], (double)termsInDoc[1][i]);
+			//expansionTerms.assignWeights(sentwModel.qemodel);
+		}
+		
+		TIntIntHashMap bgMap = genoArticles[0].getTermidFreqMap();
+		for (int i=1; i<genoArticles.length; i++)
+			genoArticles[i].mergeInto(bgMap);
+		
+		int numberOfExpandedTerms = ApplicationSetup.EXPANSION_TERMS;
+		return expansionTerms.getExpandedTermHashSet(numberOfExpandedTerms, qeModel, bgMap);
+	}
+	
+	public void printSentences(int docid){
+		Span[] spans = this.getSentences(docid);
+		printGivenSentences(spans);
+	}
+	
+	private void printGivenSentences(Span[] spans){
+		//GenoArticle.lableReferences(spans);
+		Arrays.sort(spans);
+		for (int i=0; i<spans.length; i++){
+			System.out.println("span "+(i+1)+" ["+spans[i].getType()+"]: "+spans[i].getSpanString()+
+					" - "+spans[i].getSpanScore());
+		}
+	}
+	
+	/*public void checkReferencePositions(){
+		int N = collSta.getNumberOfDocuments();
+		for (int docid=0; docid<N; docid++){
+			Span[] spans = this.getSentences(docid);
+			if (spans==null){
+				System.out.println(docid+" empty");
+				continue;
+			}
+			int[] pos = GenoArticle.findReferencePositions(spans);
+			System.out.print(docid);
+			if (pos.length==0)
+				System.out.println(" none");
+			else{
+				for (int i=0; i<pos.length; i++)
+					System.out.print(" "+pos[i]);
+				System.out.println();
+			}
+		}
+	}*/
+	
+	public void printSentences(String docno){
+		Span[] spans = getSentences(docno);
+		this.printGivenSentences(spans);
+	}
+	
+	protected Span[] getSentences(String docno){
+		char[] chars = null;
+		int docid = -1;
+		if (docno.endsWith(".pdf")){
+			//spans = getSentencesFromPdfFile(docno);
+			chars = this.getCharsInPdf(docno);
+			docno = docno.substring(docno.lastIndexOf('/')+1, docno.length());
+		}else{
+			docid = this.docIndex.getDocumentId(docno);
+			chars = this.getChars(docid);
+			//spans = getSentences(docid);
+		}
+		GenoArticle article = new GenoArticle(chars, manager, docno);
+		// extract most informative terms
+		GenoArticle[] articles = {article};
+		TIntObjectHashMap<ExpansionTerm> infoTerms = this.getExpansionTerms(articles);
+		//article.dumpSpans(lexicon);
+		System.out.println("Most informative terms: ");
+		for (int k : infoTerms.keys()){
+			infoTerms.get(k).setToken(lexicon.getLexiconEntry(k).term);
+			System.out.println(infoTerms.get(k).getToken()+" "+infoTerms.get(k).getWeightExpansion());
+		}
+		
+		// score spans
+		this.getSentenceScores(infoTerms, article.getSpans());
+		return article.getSpans();
+	}
+	
+	protected Span[] getSentencesFromPdfFile(String pdfFilename){
+		return GenoArticle.getSentencesFromText(this.getCharsInPdf(pdfFilename), 
+				pdfFilename.substring(pdfFilename.lastIndexOf('/')+1, pdfFilename.length()));
+	}
+	
+	protected Span[] getSentences(int docid) {
+		if (docid < 0)
+			return null;
+		String text = null;
+		try{
+			text = metaServer.getItem("extract", docid);
+		}catch(IOException ioe){
+			ioe.printStackTrace();
+			System.exit(1);
+		}
+		return GenoArticle.getSentencesFromText(text.toCharArray(), docIndex.getDocumentNumber(docid));
+	}
+	
+	protected char[] getChars(int docid){
+		if (docid < 0)
+			return null;
+		String text = null;
+		try{
+			text = metaServer.getItem("extract", docid);
+		}catch(IOException ioe){
+			ioe.printStackTrace();
+			System.exit(1);
+		}
+		return text.toCharArray();
+	}
+	/**
+	 * 
+	 * @param infoTerms
+	 * @param spans
+	 */
+	protected void getSentenceScores(TIntObjectHashMap<ExpansionTerm> infoTerms, Span[] spans){
+		ArrayList sentScoreMap = new ArrayList();
+		
+		THashSet<String> infoTermSet = new THashSet<String>();
+		try{			
+			// maps from termid to frequency in the document
+			TIntDoubleHashMap termidFreqMap = new TIntDoubleHashMap();
+			int[] termids = new int[infoTerms.size()];
+			double[] keyFrequencies = new double[infoTerms.size()];
+			int numberOfInfoTerms = infoTerms.size();
+			//System.out.println("numberOfInfoTerms: "+numberOfInfoTerms);
+			int counter = 0;
+			if (infoTerms.size() == 0)
+				return;
+			for (int k: infoTerms.keys()){
+				ExpansionTerm expTerm = infoTerms.get(k);
+				LexiconEntry lexEntry = lexicon.getLexiconEntry(expTerm.getTermID());
+				//System.out.println(lexEntry.term+", "+expTerm.getWeightExpansion());
+				termids[counter] = lexEntry.termId;
+				keyFrequencies[counter] = expTerm.getWeightExpansion();
+				counter++;
+			}
+			
+			for (int i=0; i<termids.length; i++){
+				LexiconEntry lexEntry = null;
+				if ((lexEntry=lexicon.getLexiconEntry(termids[i]))!=null)
+					for (int j=0; j<spans.length; j++){
+						wModel.setDocumentFrequency(lexEntry.n_t);
+						wModel.setTermFrequency(lexEntry.TF);
+						wModel.setKeyFrequency(keyFrequencies[i]);
+						int tf = spans[j].getFrequency(termids[i]);
+						if (tf > 0){
+							double score = wModel.score(tf, spans[j].getSpanLength());
+							//System.out.println(spans[j].getSpanString()+" "+score);
+							if (score!=0)
+								spans[j].setSpanScore(spans[j].getSpanScore()+score);
+						}
+					}
+			}
+		}catch(Exception ioe){
+			ioe.printStackTrace();
+			System.exit(1);
+		}
+	}
+	
+	/*protected Span[] getSentenceScores(int docid, THashMap<Integer, ExpansionTerm> infoTerms, Span[] spans){
+		ArrayList sentScoreMap = new ArrayList();
+		
+		int documentLength = docIndex.getDocumentLength(docid);
+		THashSet<String> infoTermSet = new THashSet<String>();
+		try{			
+			// maps from termid to frequency in the document
+			TIntDoubleHashMap termidFreqMap = new TIntDoubleHashMap();
+			THashMap<String, LexiconEntry> termEntryMap = new THashMap<String, LexiconEntry>();
+			ArrayList<double[][]> sentStatsList = new ArrayList<double[][]>();
+			sentwModel.setDocumentLength(docIndex.getDocumentLength(docid));
+			int numberOfInfoTerms = infoTerms.size();
+			//System.out.println("numberOfInfoTerms: "+numberOfInfoTerms);
+			for (Integer k: infoTerms.keySet()){
+				ExpansionTerm expTerm = infoTerms.get(k);
+				LexiconEntry lexEntry = lexicon.getLexiconEntry(expTerm.getTermID());
+				System.out.println(lexEntry.term+", "+expTerm.getWeightExpansion());
+				infoTermSet.add(lexEntry.term);
+			}
+			if (infoTermSet.size() == 0)
+				return null;
+			// reset qemodel
+			sentwModel.setDocumentLength(documentLength);
+			
+			double tfSent[],
+			double sentLength,
+			double sentenceFrequency[],
+			double termFrequency[],
+			double documentFrequency[],
+			double keyFrequency[]
+			for (int i=0; i<spans.length; i++){
+				// tokenise each term
+				double sentLength = 0;
+				// map from termid to sentence frequency
+				TIntDoubleHashMap senttfMap = new TIntDoubleHashMap();
+				// terms in the sentence
+				THashSet<String> termSet = new THashSet<String>();
+				// term frequency and document frequency can get from lexicon entry
+				// key frequencies set to be 1. can be filled with priors.
+				StringBuilder sb = new StringBuilder();
+				String spanString = spans[i].getSpanString();
+				for (int j=0; j<spanString.length(); j++){
+					char ch = spanString.charAt(j);
+					if (Character.isLetterOrDigit(ch)){
+						sb.append(ch);
+					}else{
+						String term = sb.toString().toLowerCase();
+						term = manager.pipelineTerm(term);
+						if (term!=null){
+							term = term.trim();
+							if (term.length()==0)
+								continue;
+							LexiconEntry lexEntry = null;
+							if (!termEntryMap.containsKey(term)){
+								// update term lexicon entry map
+								try{
+									if (lexicon.findTerm(term))
+										lexEntry = lexicon.getLexiconEntry(term);
+								}catch(Exception e){
+									logger.error("term: "+term);
+									e.printStackTrace();
+									System.exit(1);
+								}
+								termEntryMap.put(term, lexEntry);
+							}else
+								lexEntry = termEntryMap.get(term);
+							if (lexEntry!=null){
+								if (infoTermSet.contains(term)){
+									// update termid sentFreq map
+									senttfMap.adjustOrPutValue(lexEntry.termId, 1d, 1d);
+									// update termid tf map
+									termidFreqMap.adjustOrPutValue(lexEntry.termId, 1d, 1d);
+									termSet.add(term);
+								}
+								sentLength++;
+							}
+						}
+						sb = new StringBuilder();
+					}
+				}
+				double[][] sentStats = new double[7][];
+				int numberOfTermsInSentence = senttfMap.size();
+				String[] terms = (String[])termSet.toArray(new String[termSet.size()]);
+				//logger.debug("numberOfTermsInSentence: "+numberOfTermsInSentence);
+				//logger.debug("terms.length: "+terms.length);
+				for (int j=0; j<=5; j++)
+					sentStats[j] = new double[numberOfTermsInSentence];
+				sentStats[6] = new double[1];
+				for (int j=0; j<numberOfTermsInSentence; j++){
+					// store in ArrayList
+					//if (i==0)
+						//logger.debug(terms[j]);
+					LexiconEntry lexEntry = termEntryMap.get(terms[j]);
+					sentStats[0][j] = lexEntry.termId;
+					sentStats[1][j] = termidFreqMap.get(lexEntry.termId);
+					sentStats[2][j] = senttfMap.get(lexEntry.termId);
+					sentStats[3][j] = lexEntry.TF;
+					sentStats[4][j] = lexEntry.n_t;
+					sentStats[5][j] = 1d;
+				}
+				sentStats[6][0] = sentLength;
+				sentStatsList.add(sentStats);
+			}
+			double[] scores = this.sentenceScoring(sentStatsList);		
+			for (int i=0; i<scores.length; i++){
+				//if (logger.isInfoEnabled())
+					//logger.info((i+1)+": "+sentences[i]+" --- "+scores[i]);
+				if (scores[i] > 0d)
+					sentScoreMap.put(scores[i], sentences[i]);
+			}
+			int[] sentIdx = new int[spans.length];
+			
+			for (int i=0; i<sentIdx.length; i++)
+				sentIdx[i] = i;			
+			
+			TDoubleArrayList scoreList = new TDoubleArrayList();
+			TIntArrayList sentIdxList = new TIntArrayList();
+			for (int i=0; i<scores.length; i++)
+				if (scores[i]>0d){
+					scoreList.add(scores[i]);
+					sentIdxList.add(sentIdx[i]);
+				}
+			scores = scoreList.toNativeArray();
+			sentIdx = sentIdxList.toNativeArray();
+			short[] dummy = new short[scores.length];
+			Arrays.fill(dummy, (short)1);
+			HeapSort.descendingHeapSort(scores, sentIdx, dummy);
+			
+			//String[] finalSentences = new String[scores.length];
+			Span[] finalSpans = new Span[scores.length];
+			
+			for (int i=0; i<scores.length; i++){
+				//logger.info((i+1)+": "+sentences[sentIdx[i]]+" --- "+scores[i]);
+				//finalSentences[i] = sentences[sentIdx[i]];
+				finalSpans[i] = spans[sentIdx[i]];
+				finalSpans[i].setSpanScore(scores[i]);
+			}
+			spans = finalSpans;
+		}catch(Exception ioe){
+			ioe.printStackTrace();
+			System.exit(1);
+		}
+		return spans;
+	}*/
+	
+	/**
+	 * 
+	 * @param docid The id of the documents.
+	 * @return Sentence array and score array sorted by scores.
+	 */
+	public Span[] sentenceScoring(int docid, int[] pseudoDocids){
+		Span[] sentences = this.getSentences(docid);
+		TIntObjectHashMap<ExpansionTerm> infoTerms = this.getExpansionTerms(pseudoDocids);	
+		getSentenceScores(infoTerms, sentences);
+		return sentences;
+	}
+	
+	/**
+	 * int[0]: termid; int[1]: tf; int[2]: sentFrequency; int[3]: termFrequency; 
+	 * int[4]: documentFrequency; int[5]: keyFrequency, int[6][0]: sentLength
+	 * @param sentences
+	 */
+	/*public double[] sentenceScoring(ArrayList<double[][]> sentences){
+		int numberOfSentences = sentences.size();
+		double[] sentenceWeights = new double[numberOfSentences];
+		// for each sentence, assign weight
+		for (int i=0; i<numberOfSentences; i++){
+			
+			double[][] terms = (double[][])sentences.get(i);
+			double sentLength = 0d;
+			for (int j=0; j<terms[0].length; j++)
+				sentLength += terms[1][j];
+			sentenceWeights[i] = sentwModel.score(terms[0], terms[1], sentLength, 
+					terms[2], terms[3], terms[4], terms[5]);
+		}
+		return sentenceWeights;
+	}*/
+	
+	/** Obtain the sentence weighting model to use.
+	 *  @param Name of the sentence weighting model to load.
+	 */
+	public SentenceWeightingModel getSentenceWeightingModel(String Name)
+	{
+		SentenceWeightingModel rtr = null;
+		if (Name.indexOf(".") < 0 )
+			Name = NAMESPACE_SENTENCEMODEL +Name;
+		//check for acceptable matching models
+		try{
+			rtr = (SentenceWeightingModel) Class.forName(Name).newInstance();
+		}
+		catch(Exception e)
+		{
+			logger.error("Problem with postprocess named: "+Name+" : ",e);
+			return null;
+		}
+		return rtr;
+	}
+	
+	public void testSpanTokeniser(){
+		String spanString = "These clones were designated pEP10-1.5, pEP10-4.5, and pEP10-9.5, respectively. The 9.5-kb SacI fragment of pEP10 was further digested into smaller fragments and cloned in pBluescript II KS phagemid.";
+		Span span = new Span("fakeDocnos", spanString);
+		span.autoSetType();
+		span.tokenise(manager);
+		span.dumpTermFreqMap(manager.getIndex().getLexicon());
+	}
+	
+	public static char[] getCharsInPdf(String pdfFilename){
+		PDFParser parser = null; PDDocument document = null; PDFTextStripper stripper = null;
+		CharArrayWriter writer = null;
+		StringBuilder sb = new StringBuilder();
+		try{
+			parser = new PDFParser(Files.openFileStream(pdfFilename));
+			parser.parse();
+			document = parser.getPDDocument();
+			writer = new CharArrayWriter();
+			stripper = new PDFTextStripper();
+			stripper.setLineSeparator("\n");
+			stripper.writeText(document, writer);
+			document.close();
+			writer.close();
+			parser.getDocument().close();
+			Reader br = new CharArrayReader(writer.toCharArray());
+			sb.ensureCapacity(100000);
+			int ch=0;
+			boolean metEOL = false;
+			boolean firstXLine = true;
+			int lineCounter = 0;
+			while ((ch=br.read())!=-1){
+				if ((char)ch == '\n'){
+					metEOL = true;
+					continue;
+				}
+				else if ((char)ch == '-'){
+					int next = br.read();
+					if ((char)next == '\n'){
+						continue;
+					}
+				}
+				if (metEOL){
+					if (Character.isUpperCase(ch) && Character.isLetterOrDigit(sb.charAt(sb.length()-1)) && !firstXLine)
+						sb.append(". ");
+					else
+						sb.append(" ");
+					metEOL = false;
+					lineCounter++;
+					if (firstXLine && lineCounter > 7 ) firstXLine = false;
+				}
+				sb.append((char)ch);
+			}
+		}catch (Exception e){
+			e.printStackTrace();
+			System.exit(1);
+		}
+		char[] chars = new char[sb.length()];
+		sb.getChars(0, sb.length()-1, chars, 0);
+		return chars;
+	}
+	
+	public void testPDF(String pdfFilename, String outputFilename){
+		PDFParser parser = null; PDDocument document = null; PDFTextStripper stripper = null;
+		CharArrayWriter writer = null;
+		try{
+			parser = new PDFParser(Files.openFileStream(pdfFilename));
+			parser.parse();
+			document = parser.getPDDocument();
+			writer = new CharArrayWriter();
+			stripper = new PDFTextStripper();
+			stripper.setLineSeparator("\n");
+			stripper.writeText(document, writer);
+			document.close();
+			writer.close();
+			parser.getDocument().close();
+			Reader br = new CharArrayReader(writer.toCharArray());
+			StringBuilder sb = new StringBuilder();
+			sb.ensureCapacity(100000);
+			int ch=0;
+			boolean metEOL = false;
+			boolean firstXLine = true;
+			int lineCounter = 0;
+			while ((ch=br.read())!=-1){
+				if ((char)ch == '\n'){
+					metEOL = true;
+					continue;
+				}
+				else if ((char)ch == '-'){
+					int next = br.read();
+					if ((char)next == '\n'){
+						continue;
+					}
+				}
+				if (metEOL){
+					if (Character.isUpperCase(ch) && Character.isLetterOrDigit(sb.charAt(sb.length()-1)) && !firstXLine)
+						sb.append(". ");
+					else
+						sb.append(" ");
+					metEOL = false;
+					lineCounter++;
+					if (firstXLine && lineCounter > 7 ) firstXLine = false;
+				}
+				sb.append((char)ch);
+			}
+			BufferedWriter bw = (BufferedWriter)Files.writeFileWriter(outputFilename);
+			bw.write(sb.toString());
+			bw.close();
+			char[] chars = new char[sb.length()];
+			sb.getChars(0, sb.length()-1, chars, 0);
+			//printGivenSentences(GenoArticle.getSentencesFromText(chars, "extDoc"));
+			GenoArticle article = new GenoArticle(chars, manager, "extDoc");
+			article.dumpSpans(manager.getIndex().getLexicon());
+		}catch (Exception e){
+			e.printStackTrace();
+			System.exit(1);
+			/*logger.warn("WARNING: Problem converting PDF: ",e);
+			try{
+				document.close();				
+			}catch(Exception e1){
+				logger.warn("WARNING: Problem converting PDF: ",e1);
+			}
+			try{
+				writer.close();
+			}catch(Exception e2){
+				logger.warn("WARNING: Problem converting PDF: ",e2);
+			}
+			try{
+				parser.getDocument().close();
+			}catch(Exception e3){
+				logger.warn("WARNING: Problem converting PDF: ",e3);	
+			}
+			parser = null; document = null; writer = null; stripper = null;*/
+		}
+	}
+
+	/**
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		if (args[0]!=null){
+			String sentWModelName = ApplicationSetup.getProperty("sentence.weighting.model", "Bo1");
+			String qemodelName = ApplicationSetup.getProperty("trec.qemodel", "Bo1");
+			SentenceExtraction app = new SentenceExtraction(sentWModelName, qemodelName);
+			if (args[0].equals("--scoredocument")){
+				// --scoredocument docid pseudodocids
+				int docid = Integer.parseInt(args[1]);
+				int[] pseudoDocids = new int[args.length - 2];
+				for (int i=2; i<args.length; i++){
+					pseudoDocids[i-2] = Integer.parseInt(args[i]);
+				}
+				Span[] spans = app.sentenceScoring(docid, pseudoDocids);
+				Arrays.sort(spans);
+				app.printGivenSentences(spans);
+			}else if (args[0].equals("--printsentencesbydocno")){
+				// --printsentencesbydocno docno
+				app.printSentences(args[1]);
+			}else if (args[0].equals("--printsentencesbydocid")){
+				// --printsentencesbydocno docid
+				app.printSentences(Integer.parseInt(args[1]));
+			}else if (args[0].equals("--testpdf")){
+				app.testPDF(args[1], args[2]);
+			}else if(args[0].equals("--testspantokeniser")){
+				app.testSpanTokeniser();
+			}
+		}
+	}
+
+}

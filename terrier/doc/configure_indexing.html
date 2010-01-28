@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Configuring Indexing</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" href="docs.css">
+</head>
+
+<body>
+<!--!bodystart-->
+[<a href="configure_general.html">Previous: Configuring Terrier</a>] [<a href="index.html">Contents</a>] [<a href="configure_retrieval.html">Next: Configuring Retrieval</a>]
+<table width="100%">
+  <tr> 
+    <td width="82%" valign="bottom"><h1>Configuring Indexing in Terrier</h1></td>
+	<!--!bodyremove-->
+    <td width="18%"><a href="http://ir.dcs.gla.ac.uk/terrier/"><img src="images/terrier-logo-web.jpg" border="0"></a></td>
+	<!--!/bodyremove-->
+  </tr>
+</table>
+
+
+<h2>Indexing Overview</h2>
+<p align="justify">Firstly, the Collection and Document object parse the collection. For <a href="javadoc/TrecTerrier.html">TrecTerrier</a>, you can configure the object used to parse the collection by setting the property <tt>trec.collection.class</tt>. Additionally, you can set documents that <a href="javadoc/uk/ac/gla/terrier/indexing/TRECCollection.html">TRECCollection</a> should skip, by adding their docnos to the file named by the property <tt>trec.blacklist.docids</tt>. Moreover, you can configure Terrier to accept larger terms (by the property <tt>max.term.length</tt> - default 20), or documents with larger docnos (<tt>docno.byte.length</tt> - default 20). These two properties replace the <tt>string.byte.length</tt> property of Terrier 1.0.2.
+</p>
+
+<p align="justify">
+TRECCollection can be further configured. Set <tt>TrecDocTags.doctag</tt> to denote the marker tag for document boundaries. <tt>TrecDocTags.idtag</tt> denotes the tag that contains the DOCNO of the document. <tt>TrecDocTags.skip</tt> denotes tags that should not be parsed in this collection (for instance, the DOCHDR tags of TREC Web collections). Note that as of Terrier 1.1.0, the specified tags are case-sensitive, but this can be relaxed by setting the <tt>TrecDocTags.casesensitive</tt> property to false.
+</p>
+
+<p align="justify">
+Terrier has the ability to record the occurrences of terms in fields of documents. For TRECCollection, you can specify the fields that should be recorded by the <tt>FieldTags.process</tt> property. For example, to note when a term occurs in the TITLE or H1 HTML tags of a documents, set <tt>FieldTags.process=TITLE,H1</tt>. FieldTags are case-insensitive.
+</p>
+
+<p align="justify">The indexer iterates through the documents of the collection and sends each term found
+through the <a href="javadoc/uk/ac/gla/terrier/terms/TermPipeline.html">TermPipeline</a>. The TermPipeline
+transforms the terms, and can remove terms that should not be indexed. The TermPipeline chain in use is
+<tt>termpipelines=Stopwords,PorterStemmer</tt>, which removes terms from the document using the <a href="javadoc/uk/ac/gla/terrier/terms/Stopwords.html">Stopwords</a> object, and then applies Porter's Stemming algorithm for English to the terms (<a href="javadoc/uk/ac/gla/terrier/terms/PorterStemmer.html">PorterStemmer</a>). If you wanted to use a different stemmer, this is the point at which it should be called.
+</p>
+
+<p align="justify">The term pipeline can also be configured at indexing time to skip various tokens. Set a comma delimited list of tokens to skip in the property <tt>termpipelines.skip</tt>. The same property works at retrieval time also.</p>
+
+<p align="justify">The indexers are more complicated. Each class can be configured by several properties. Many of these alter the memory usage of the classes.</p>
+<ul>
+<li><tt>string.use_utf</tt> - set this to true if you are doing retrieval in languages other than English. The default Terrier Lexicon does not save extended or UTF characters.</li>
+ <li><tt>indexing.max.tokens</tt> - The maximum number of tokens the indexer will attempt to index in a document.
+ If 0, then all tokens will be indexed (default).</li>
+ <li><tt>ignore.empty.documents</tt> - Assign empty documents document Ids. Default true.</li>
+ <li><tt>indexing.max.docs.per.builder</tt> - Maximum number of documents in an index before a new index is created, and merged later.
+ <li><tt>indexing.builder.boundary.docnos</tt> - Docnos of documents that force the index being created to be completed, 
+ and a new index to be commenced. An alternative to <tt>indexing.max.docs.per.builder</tt>.</li>
+ <li><tt>indexing.max.encoded.documentindex.docs</tt> - how many docs before the DocumentIndexEncoded is dropped in favour of the DocumentIndex (on disk implementation).</li>
+<br>For the <a href="javadoc/uk/ac/gla/terrier/indexing/BlockIndexer.html">BlockIndexer</a>:
+ <li><tt>block.indexing</tt> - enable block indexing.</li>
+ <li><tt>block.size</tt> - How many terms should be in one block. If you want to use phrasal search, this needs to be 1 (default).</li>
+ <li><tt>max.blocks</tt> - Maximum number of blocks in a document. After this number of blocks, all subsequent terms will be in the same block. Default 100,000.</li>
+</ul>
+
+
+
+<p align="justify"> Once terms have been processed through the TermPipeline, they are aggregated by the <a href="javadoc/uk/ac/gla/terrier/structures/indexing/DocumentPostingList.html">DocumentPostingList</a> and the <a href="javadoc/uk/ac/gla/terrier/structures/indexing/LexiconMap.html">LexiconMap</a>. These have a few properties:
+<ul>
+<li><tt>indexing.avg.unique.terms.per.doc</tt> - number of unique terms per doc on average, used to tune the initial 
+ size of the hashmaps used in this class. This is a speed hint, default value 120.</li>
+<li><tt>indexing.avg.unique.terms.per.bundle</tt> - the unique number of terms expected to be indexed in a bundle of documents. Not a limit, just a hint for the sizing of the hashmaps. This is also a speed hint, defaults to 120.</li>
+</ul>
+</p>
+
+<h3>Classical two-pass indexing</h3>
+<p align="justify">This subsection describes the classical indexing implemented by BasicIndexer and BlockIndexer. For single-pass indexing, see the next subsection.</a>
+
+<p align="justify">The LexiconMap is flushed to disk every <tt>bundle.size</tt> documents. If memory during indexing is a concern, then reduce this property to less than its default 2500. However, more temporary lexicons will be created. The rate at which the temporary lexicons are merged is controlled by the <tt>lexicon.builder.merge.lex.max</tt> property, though we have found 16 to be a good compromise. Finally, if you set <tt>lexicon.use.hash</tt> to true, then Lexicon read performance will be enhanced by the creation of a lexicon hash, which reduces the size of the binary search when reading the lexicon for a term (i.e. <a href="javadoc/uk/ac/gla/terrier/structures/Lexicon.html#findTerm(java.lang.String)">findTerm(String)</a>).
+</p>
+
+<p align="justify">Once all documents in the index have been created, the InvertedIndex is created by the <a href="javadoc/uk/ac/gla/terrier/structures/indexing/InvertedIndexBuilder.html">InvertedIndexBuilder</a>. As the entire DirectIndex cannot be inverted in memory, the InvertedIndexBuilder takes several iterations, selecting a few terms, scanning the direct index for them, and then writing out their postings to the inverted index. If it takes too many terms at once, Terrier can run out of memory. Reduce the property <tt>invertedfile.processpointers</tt> from its default 20,000,000 and rerun (default is only 2,000,000 for block indexing, which is more memory intensive). See the <a href="javadoc/uk/ac/gla/terrier/structures/indexing/InvertedIndexBuilder.html">InvertedIndexBuilder</a> for more information about the inversion and term selection strategies.
+</p>
+
+<h3>Single-pass indexing</h3>
+<p align="justify">Single-pass indexing is implemented by the classes <a href="javadoc/uk/ac/gla/terrier/indexing/BasicSinglePassIndexer.html">BasicSinglePassIndexer</a> and <a href="javadoc/uk/ac/gla/terrier/indexing/BasicSinglePassIndexer.html">BlockSinglePassIndexer</a>. Essentially, instead of building a direct file from the collection, term postings lists are held in memory, and written to disk as 'run' when memory is exhausted. These are then merged to form the lexicon and the inverted file. Note that no direct index is created - indeed, the singlepass indexing is much faster than classical two-pass indexing when the direct index is not required. If the direct index is required, then this can be built from the inverted index using the <a href="javadoc/uk/ac/gla/terrier/structures/indexing/singlepass/Inverted2DirectIndexBuilder.html">Inverted2DirectIndexBuilder</a>.</p>
+
+<p align="justify">The single-pass indexer can be used by using the <tt>-i -j</tt> command line argument to TrecTerrier.</p>
+
+<p align="justify">The majority of the properties configuring the single-pass indexer are related to memory consumption, and how it decides that memory has been exhausted. Firstly, the indexer will commit a run to disk when free memory falls below the threshold set by <tt>memory.reserved</tt> (50MB). To ensure that this doesn't happen too soon, 85% of the possible heap must be allocated (controlled by the property <tt>memory.heap.usage</tt>). This check occurs every 20 documents (<tt>docs.checks</tt>).</p>
+
+All code to perform the complex run operations is contained in the <a href="javadoc/uk/ac/gla/terrier/structures/indexing/singlepass/">uk.ac.gla.terrier.strucutures.indexing.singlepass</a> package.
+
+<p align="justify"></p>
+
+<h2>More about Block Indexing</h2>
+<h3>What are blocks?</h3>
+<p align="justify">A block is a unit of text in a document. When you index using blocks, you tell Terrier to save positional information with each term. Depending on how Terrier has been configured, a block can be of size 1 or larger. Size 1 means that the exact position of each term can be determined. For size &gt; 1, the block id is incremented after every N terms. You can configure the size of a block using the property <tt>block.size</tt>.</p>
+
+<h3>How do I use blocks?</h3>
+<p align="justify">You can enable block indexing by setting the property <tt>block.indexing</tt> to <tt>true</tt> in your terrier.properties file. This ensures that the Indexer used for indexing is the BlockIndexer, not the BasicIndexer (or BlockSinglePassIndexer instead of BasicSinglePassIndexer). When loading an index, Terrier will detect that the index has block information saved and use the appropriate classes for reading the index files.</p>
+
+<p align="justify">You can use the positional information when doing retrieval. For instance, you search for documents matching a phrase, e.g. <tt>"Terabyte retriever"</tt>, or where the words occur near each other, e.g. <tt>"indexing blocks"~20</tt>.</p>
+
+<h3>What changes when I use block indexing?</h3>
+<p align="justify">When you enable the property <tt>block.indexing</tt>, the indexer used is the BlockIndexer, not the BasicIndexer (if you're using single-pass indexing, it is the BlockSinglePassIndexer, not the BasicSinglePassIndexer that is used). The DirectIndex and InvertedIndex created use a different format, which includes the blockids for each posting, and can be read by BlockDirectIndex and BlockInvertedIndex respectively. During two-pass indexing, BlockLexicons are created that keep track of how many blocks are in use for a term. However, at the last stage of rewriting the lexicon at the end of inverted indexing, the BlockLexicon is rewritten as a normal Lexicon, as the block information can be guessed during retrieval.</P>
+<br>
+
+<h3>Block Delimiter Terms</h3>
+<p align="justify">Block indexing can be configured to consider bounded instead of fixed-size blocks. Basically, a list of pre-defined terms must be specified as special-purpose block delimiters. By using sentence boundaries as block delimiters, for instance, one can have blocks to represent sentences. BlockIndexer, BlockSinglePassIndexer, and Hadoop_BlockSinglePassIndexer implement this feature.</p>
+
+<p align="justify">Bounded block indexing can be used by configuring the following properties:</p>
+<ul><li><tt>block.delimiters.enabled</tt> [true|false], whether delimited blocks should be used instead of fixed-size blocks. Defaults to false.</li>
+<li><tt>block.delimiters</tt> [comma-separated values], The list of terms that cause the block counter to be incremented.</li>
+<li><tt>block.delimiters.index.terms</tt> [true|false], whether delimiters should be indexed. Defaults to false.</li>
+<li><tt>block.delimiters.index.doclength</tt> [true|false], whether indexed delimiters should contribute to document length statistics. Defaults to false, only has effect if <tt>block.delimiters.index.terms</tt> is enabled.</li>
+<li><tt>termpipeline.skip</tt> [comma-separated values] In practice, this should be set to the value of block.delimiters in order to avoid the specified delimiters being stemmed or removed during indexing.</li>
+</ul>
+
+[<a href="configure_general.html">Previous: Configuring Terrier</a>] [<a href="index.html">Contents</a>] [<a href="configure_retrieval.html">Next: Configuring Retrieval</a>]
+<!--!bodyend-->
+<hr>
+<small>
+Webpage: <a href="http://ir.dcs.gla.ac.uk/terrier">http://ir.dcs.gla.ac.uk/terrier</a><br>
+Contact: <a href="mailto:terrier@dcs.gla.ac.uk">terrier@dcs.gla.ac.uk</a><br>
+<a href="http://www.dcs.gla.ac.uk/">Department of Computing Science</a><br>
+
+Copyright (C) 2004-2008 <a href="http://www.gla.ac.uk/">University of Glasgow</a>. All Rights Reserved.
+</small>
+</body>
+</html>
