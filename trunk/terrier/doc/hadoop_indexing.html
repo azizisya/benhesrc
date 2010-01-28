@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Contents</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" href="docs.css">
+</head>
+
+<body>
+<!--!bodystart-->
+
+[<a href="hadoop_configuration.html">Previous: Terrier/Hadoop Configuration</a>] [<a href="index.html">Contents</a>] [<a href="properties.html">Next: Properties in Terrier</a>]
+<table width="100%">
+  <tr>
+    <td width="82%" valign="bottom"><h1>Configuring Terrier for Hadoop</h1></td>
+    <!--!bodyremove-->
+    <td width="18%"><a href="http://ir.dcs.gla.ac.uk/terrier/"><img src="images/terrier-logo-web.jpg" border="0"></a></td>
+    <!--!/bodyremove-->
+  </tr>
+</table>
+
+<h2>Overview</h2>
+<p align="justify">
+From version 2.2, Terrier supports the indexing of large collections in a Hadoop Map Reduce fashion. This uses the single-pass indexer to index sections of each collection (as batches of files) as map tasks. The output from the Map tasks take three forms: (a) terms and mini posting lists (known as runs in the single-pass indexer); (b) document indices from each map task; (c) information about the number of documents saved per run.
+</p>
+
+
+<h2>Configuration</h2>
+<p align="justify">
+To index using the Map Reduce indexer, you need to have Terrier setup to use your Hadoop cluster. More information can be found in the <a href="hadoop_configuration.html">Configuring Terrier for Hadoop</a> documentation. For indexing using Map Reduce, your indexing Collection must have a InputStream constructor - currently only <a href="javadoc/uk/ac/gla/terrier/indexing/TRECCollection.html">TRECCollection</a> and <a href="javadoc/uk/ac/gla/terrier/indexing/TRECUTFCollection.html">TRECUTFCollection</a> have this, however, this is expected to change in future releases. Choose your collection using the property <tt>trec.collection.class</tt> as per normal.
+</p>
+<p align="justify">
+Next, the location of your collection and your index are both important. You will get most benefit from Hadoop if your collection is stored on one of the supported distributed file systems (e.g. HDFS). Hadoop requires that the files of the collection that your are indexing are stored in the shared file system (the one named by <tt>fs.default.name</tt> in the Hadoop configuration). For example:
+</p>
+<pre>
+$ cat etc/collection.spec
+hdfs://master:9000/Collections/WT2G/WT01/B01.gz
+hdfs://master:9000/Collections/WT2G/WT01/B02.gz
+hdfs://master:9000/Collections/WT2G/WT01/B03.gz
+(etc)
+</pre>
+<p align="justify">
+You should also ensure that your index is in on the shared filespace (again, the one named by <tt>fs.default.name</tt> in the Hadoop configuration), by setting the <tt>terrier.index.path</tt> property accordingly. For example you can set, <tt>terrier.index.path=hdfs://master:9000/Indices/WT2G</tt>. 
+</p>
+
+<h2>Running Indexing Job</h2>
+Running the Map Reduce indexer is straightforward, using the <tt>-H</tt> or <tt>--hadoop</tt> options to TrecTerrier. A run of the Map Reduce indexer (also using HOD) is shown below:
+<pre>
+$ bin/trec_terrier.sh -i -H
+Setting TERRIER_HOME to /users/tr.craigm/src/trhadoop/terrier
+INFO  HadoopPlugin - Processing HOD for HOD-TerrierIndexing at hod request for 6 nodes
+INFO  HadoopPlugin - INFO - Cluster Id 100.master
+INFO  HadoopPlugin - INFO - HDFS UI at http://master:50070
+INFO  HadoopPlugin - INFO - Mapred UI at http://node01:59794
+INFO  HadoopPlugin - INFO - hadoop-site.xml at /tmp/hod679442803
+INFO  HadoopUtility - Copying terrier share/ directory to shared storage area (hdfs://master:9000/tmp/1265627345-terrier.share)
+WARN  JobClient - Use GenericOptionsParser for parsing the arguments. Applications should implement Tool for the same.
+WARN  JobClient - No job jar file set.  User classes may not be found. See JobConf(Class) or JobConf#setJar(String).
+INFO  MultiFileCollectionInputFormat - Allocating 10 files across 2 map tasks
+INFO  JobClient - Running job: job_200812161322_0001
+INFO  JobClient -  map 0% reduce 0%
+INFO  JobClient -  map 20% reduce 0%
+INFO  JobClient -  map 40% reduce 0%
+INFO  JobClient -  map 60% reduce 0%
+INFO  JobClient -  map 70% reduce 0%
+INFO  JobClient -  map 80% reduce 0%
+INFO  JobClient -  map 90% reduce 0%
+INFO  JobClient -  map 100% reduce 0%
+INFO  JobClient -  map 100% reduce 16%
+INFO  JobClient -  map 100% reduce 70%
+INFO  JobClient -  map 100% reduce 98%
+INFO  JobClient - Job complete: job_200812161322_0001
+INFO  JobClient - Counters: 16
+INFO  JobClient -   File Systems
+INFO  JobClient -     HDFS bytes read=9540868
+INFO  JobClient -     HDFS bytes written=3020756
+INFO  JobClient -     Local bytes read=7937792
+INFO  JobClient -     Local bytes written=15875666
+INFO  JobClient -   Job Counters 
+INFO  JobClient -     Launched reduce tasks=1
+INFO  JobClient -     Rack-local map tasks=2
+INFO  JobClient -     Launched map tasks=2
+INFO  JobClient -   Map-Reduce Framework
+INFO  JobClient -     Reduce input groups=46130
+INFO  JobClient -     Combine output records=0
+INFO  JobClient -     Map input records=2124
+INFO  JobClient -     Reduce output records=0
+INFO  JobClient -     Map output bytes=7724117
+INFO  JobClient -     Map input bytes=-4167449
+INFO  JobClient -     Combine input records=0
+INFO  JobClient -     Map output records=75700
+INFO  JobClient -     Reduce input records=75700
+INFO  HadoopPlugin - Processing HOD disconnect
+</pre>
+
+<p align="justify"><b>NB:</b> Please note that you must wait for the Map Reduce job to end, and not kill the local Terrier process, otherwise temporary files may be left on the shared file system.</p>
+
+<p></p>
+<a href="hadoop_configuration.html">Previous: Terrier/Hadoop Configuration</a>] [<a href="index.html">Contents</a>] [<a href="properties.html">Next: Properties in Terrier</a>]
+<!--!bodyend-->
+<hr>
+<small>
+Webpage: <a href="http://ir.dcs.gla.ac.uk/terrier">http://ir.dcs.gla.ac.uk/terrier</a><br>
+Contact: <a href="mailto:terrier@dcs.gla.ac.uk">terrier@dcs.gla.ac.uk</a><br>
+<a href="http://www.dcs.gla.ac.uk/">Department of Computing Science</a><br>
+
+Copyright (C) 2004-2008 <a href="http://www.gla.ac.uk/">University of Glasgow</a>. All Rights Reserved.
+</small>
+<tr><td colspan="2">&nbsp;</td></tr>
+</body>
+</html>

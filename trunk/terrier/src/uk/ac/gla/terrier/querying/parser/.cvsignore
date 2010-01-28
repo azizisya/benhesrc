@@ -1,0 +1,11 @@
+TerrierLexer.java
+TerrierQueryParser.java
+TerrierQueryParserTokenTypes.java
+TerrierQueryParserTokenTypes.txt
+MainTokenTypes.java
+MainTokenTypes.txt
+NumbersTokenTypes.java
+NumbersTokenTypes.txt
+TerrierFloatLexer.java
+TerrierFloatLexerTokenTypes.java
+TerrierLexerTokenTypes.java

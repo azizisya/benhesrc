@@ -1,0 +1,349 @@
+package uk.ac.gla.terrier.documentfeature;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.util.Arrays;
+import uk.ac.gla.terrier.evaluation.TRECQrelsInMemory;
+import uk.ac.gla.terrier.querying.Manager;
+import uk.ac.gla.terrier.structures.CollectionStatistics;
+import uk.ac.gla.terrier.structures.DirectIndex;
+import uk.ac.gla.terrier.structures.DocumentIndex;
+import uk.ac.gla.terrier.structures.Index;
+import uk.ac.gla.terrier.structures.Lexicon;
+import uk.ac.gla.terrier.structures.LexiconEntry;
+import uk.ac.gla.terrier.structures.TRECQuery;
+import uk.ac.gla.terrier.utility.ApplicationSetup;
+import uk.ac.gla.terrier.utility.Files;
+import uk.ac.gla.terrier.utility.QueryUtility;
+import uk.ac.gla.terrier.utility.Rounding;
+import uk.ac.gla.terrier.utility.StringUtility;
+import gnu.trove.TDoubleHashSet;
+import gnu.trove.THashMap;
+import gnu.trove.THashSet;
+import gnu.trove.TIntDoubleHashMap;
+import gnu.trove.TIntIntHashMap;
+import gnu.trove.TIntObjectHashMap;
+
+public class SVMLightFeatureExtractor implements DocumentFeatureExtractor{
+	protected Index index;
+	
+	protected DirectIndex directIndex;
+	
+	protected DocumentIndex docIndex;
+	
+	protected CollectionStatistics collStats;
+	
+	protected Lexicon lexicon;
+	
+	protected DocumentFeature[] docFeatures;
+	
+	public SVMLightFeatureExtractor(Index index, String[] featureNames){
+		this.index = (index==null)?(null):(index);
+		if (index!=null){
+			this.directIndex = index.getDirectIndex();
+			this.lexicon = index.getLexicon();
+			this.docIndex = index.getDocumentIndex();
+			this.collStats = index.getCollectionStatistics();
+		}
+		docFeatures = new DocumentFeature[featureNames.length];
+		Index[] parameters = {this.index};
+		for (int i=0; i<featureNames.length; i++){
+			try{
+				docFeatures[i] = (DocumentFeature) Class.forName(
+						"uk.ac.gla.terrier.documentfeature."+featureNames[i])
+						.getConstructor(
+								new Class[]{Index.class})
+						.newInstance(
+								new Object[]{this.index});
+			}catch(Exception e){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+	}
+	
+	/**
+	 * Extract document features that are stored in a given object.
+	 * @param docid
+	 * @param docFeature Mapping from 
+	 */
+	public void extractDocumentFeature(int docid, String queryid, int[] queryTermids, TIntObjectHashMap featureMap){
+		for (int i=0; i<docFeatures.length; i++){
+			//TerrierTimer timer = new TerrierTimer();
+			//timer.start();
+			docFeatures[i].extractDocumentFeature(docid, queryid, queryTermids, featureMap);
+			//timer.setBreakPoint();
+			//System.out.println(docFeatures[i].getInfo()+": "+timer.toStringMinutesSeconds());
+		}
+	}
+	
+	public void formatDocumentFeature(int docid, String qid, TIntObjectHashMap featureMap, StringBuffer buf, int label){
+		if (featureMap.size()==0)
+			return;
+		//scaleFeatureValues(featureMap);
+		int[] docids = featureMap.keys();
+		Arrays.sort(docids);
+		buf.append(label);
+		for (int i=0; i<docids.length; i++){
+			double value = (Double)featureMap.get(docids[i]);
+			if (value>0d)
+				buf.append(" "+docids[i]+":"+Rounding.toString(value, 6));
+		}
+	}
+	public static void scaleFeatureValues(TIntObjectHashMap<Double>[] posFeatureMaps, TIntObjectHashMap<Double>[] negFeatureMaps){
+		int[] featureIds = posFeatureMaps[0].keys();
+		for (int featureId : featureIds){
+			TDoubleHashSet valueSet = new TDoubleHashSet();
+			for (TIntObjectHashMap<Double> map : posFeatureMaps){
+				double value = map.get(featureId);
+				if (value>0d)
+					valueSet.add(value);
+			}
+			for (TIntObjectHashMap<Double> map : negFeatureMaps){
+				double value = map.get(featureId);
+				if (value>0d)
+					valueSet.add(value);
+			}
+			double[] values = valueSet.toArray();
+			Arrays.sort(values);
+			// for (int i=0; i<values.length; i++)
+				// System.out.println("value "+i+"="+values[i]);
+			double min = values[0]; double max = values[values.length-1];
+			for (TIntObjectHashMap<Double> map : posFeatureMaps){
+				double value = map.get(featureId);
+				if (value>0d)
+					map.put(featureId, (value-min)/(max-min));
+				else
+					map.put(featureId, -1d);
+			}
+			for (TIntObjectHashMap<Double> map : negFeatureMaps){
+				double value = map.get(featureId);
+				if (value>0d)
+					map.put(featureId, (value-min)/(max-min));
+				else
+					map.put(featureId, -1d);
+			}
+		}
+	}
+	
+	/*public static void scaleFeatureValues(TIntDoubleHashMap featureMap){
+		int[] docids = featureMap.keys();
+		double[] values = featureMap.getValues();
+		Arrays.sort(values);
+		double min = values[0]; double max = values[values.length-1];
+		System.err.println("min="+min+", max="+max);
+		for (int i=0; i<docids.length; i++){
+			System.err.print("old value: "+Rounding.toString(featureMap.get(docids[i]), 6));
+			featureMap.put(docids[i], (featureMap.get(docids[i])-min)/(max-min));
+			System.err.println("new value: "+Rounding.toString(featureMap.get(docids[i]), 6));
+		}
+	}*/
+	
+	public void extractDocumentFeature(int[] posDocids, int[] negDocids, String queryid, int[] queryTermids, 
+			TIntObjectHashMap<Double>[] posFeatureMaps, TIntObjectHashMap<Double>[] negFeatureMaps){
+		int counter = 0;
+		int totalDocs = posDocids.length+negDocids.length;
+		for (int i=0; i<posDocids.length; i++){
+			if (posDocids[i]==-1)
+				continue;
+			System.out.print("processing positive document "+posDocids[i]+"...");
+			this.extractDocumentFeature(posDocids[i], queryid, queryTermids, posFeatureMaps[i]);
+			System.out.println("Done. Feature vector length: "+posFeatureMaps[i].size()+". "
+					+(++counter)+" out of "+totalDocs+" documents processed.");
+			System.gc();
+		}
+		for (int i=0; i<negDocids.length; i++){
+			if (negDocids[i] == -1)
+				continue;
+			System.out.print("processing negative document "+negDocids[i]+"...");
+			this.extractDocumentFeature(negDocids[i], queryid, queryTermids, negFeatureMaps[i]);
+			System.out.println("Done. Feature vector length: "+negFeatureMaps[i].size()+". "
+					+(++counter)+" out of "+totalDocs+" documents processed.");
+			System.gc();
+		}
+	}
+	
+	public void extractAndWriteDocumentFeature(int[] posDocids, int[] negDocids, String queryid, int[] queryTermids, String outputFilename){
+		TIntObjectHashMap<Double>[] posFeatureMaps = new TIntObjectHashMap[posDocids.length]; 
+		TIntObjectHashMap<Double>[] negFeatureMaps = new TIntObjectHashMap[negDocids.length];
+		for (int i=0; i<posDocids.length; i++)
+			posFeatureMaps[i] = new TIntObjectHashMap<Double>();
+		for (int i=0; i<negDocids.length; i++)
+			negFeatureMaps[i] = new TIntObjectHashMap<Double>();
+		String[] posQids = new String[posDocids.length]; String[] negQids = new String[negDocids.length];
+		Arrays.fill(posQids, queryid); Arrays.fill(negQids, queryid);
+		extractDocumentFeature(posDocids, negDocids, queryid, queryTermids, posFeatureMaps, negFeatureMaps);
+		writeDocumentFeature(posDocids, negDocids, posQids, negQids, posFeatureMaps, negFeatureMaps, outputFilename);
+	}
+	
+	public void writeDocumentFeature(int[] posDocids, int[] negDocids, String[] posQids, String[] negQids, 
+	         TIntObjectHashMap<Double>[] posFeatureMaps, 
+			 TIntObjectHashMap<Double>[] negFeatureMaps, String outputFilename){
+		try{
+			// scale feature maps
+			scaleFeatureValues(posFeatureMaps, negFeatureMaps);
+			// write svm light training data file
+			BufferedWriter bw = (BufferedWriter)Files.writeFileWriter(outputFilename);
+			for (int i=0; i<posFeatureMaps.length; i++){
+				StringBuffer buf = new StringBuffer();
+				//if (map.size()<2)
+					//continue;
+				this.formatDocumentFeature(posDocids[i], posQids[i], posFeatureMaps[i], buf, 1);
+				bw.write(buf.toString()+ApplicationSetup.EOL);
+			}
+			for (int i=0; i<negFeatureMaps.length; i++){
+				StringBuffer buf = new StringBuffer();
+				this.formatDocumentFeature(negDocids[i], negQids[i], negFeatureMaps[i], buf, -1);
+				bw.write(buf.toString()+ApplicationSetup.EOL);
+			}
+			bw.close();
+		}catch(IOException ioe){
+			ioe.printStackTrace();
+			System.exit(1);
+		}
+	}
+	
+	public void extractAndWriteDocumentFeature(String qrelsFilename, String queryid, String outputFilename){
+		//System.err.println("PLEASE ENSURE THAT DOCNOS IN THE QRELS HAVE BEEN CONVERTED TO DOCIDS");
+		TRECQrelsInMemory qrels = new TRECQrelsInMemory(qrelsFilename);
+		String[] posDocnos = qrels.getRelevantDocumentsToArray(queryid);
+		String[] negDocnos = qrels.getNonRelevantDocumentsToArray(queryid);
+		int[] posDocids = StringUtility.stringsToInts(posDocnos);
+		int[] negDocids = StringUtility.stringsToInts(negDocnos);
+		// get queryTermids
+		try{
+			extractAndWriteDocumentFeature(posDocids, negDocids, queryid,
+				processQuery(((TRECQuery)Class.forName("uk.ac.gla.terrier.structures."+ApplicationSetup.getProperty("trec.topics.parser", 
+						"TRECQuery")).newInstance()).getQuery(queryid), index).keys(), 
+				outputFilename);
+		}catch(Exception e){
+			e.printStackTrace();
+			System.exit(1);
+		}
+	}
+	
+	public void extractAndWriteDocumentFeature(String qrelsFilename, String outputFilename, boolean cached){
+		System.err.println("PLEASE ENSURE THAT DOCNOS IN THE QRELS HAVE BEEN CONVERTED TO DOCIDS");
+		TRECQuery queries = QueryUtility.getQueryParser();	
+		String[] queryids = queries.getQueryids();
+		TRECQrelsInMemory qrels = new TRECQrelsInMemory(qrelsFilename);
+		TIntObjectHashMap<String> docidQidMap = new TIntObjectHashMap<String>();// assume same doc is not used for feedback for different queries
+		TIntObjectHashMap<TIntObjectHashMap<Double>> posFeature = new TIntObjectHashMap<TIntObjectHashMap<Double>>();  // map from docid to features
+		TIntObjectHashMap<TIntObjectHashMap<Double>> negFeature = new TIntObjectHashMap<TIntObjectHashMap<Double>>();   // map from docid to features
+		for (int i=0; i<queryids.length; i++){
+			String[] posDocnos = qrels.getRelevantDocumentsToArray(queryids[i]);
+			String[] negDocnos = qrels.getNonRelevantDocumentsToArray(queryids[i]);
+			if (posDocnos==null||negDocnos==null)
+				continue;
+			int[] posDocids = (posDocnos==null)?(null):(StringUtility.stringsToInts(posDocnos));
+			int[] negDocids = (negDocnos==null)?(null):(StringUtility.stringsToInts(negDocnos));
+			TIntObjectHashMap<Double>[] posFeatureMaps = (posDocids==null)?(null):(new TIntObjectHashMap[posDocids.length]); 
+			TIntObjectHashMap<Double>[] negFeatureMaps = (negDocids==null)?(null):(new TIntObjectHashMap[negDocids.length]);
+			for (int j=0; j<posDocids.length; j++)
+				posFeatureMaps[j] = new TIntObjectHashMap<Double>();
+			for (int j=0; j<negDocids.length; j++)
+				negFeatureMaps[j] = new TIntObjectHashMap<Double>();
+			// get queryTermids
+			try{
+				if (cached)
+					this.extractDocumentFeature(posDocids, negDocids, queryids[i], null, 
+							posFeatureMaps, negFeatureMaps);
+				else
+					this.extractDocumentFeature(posDocids, negDocids, queryids[i], processQuery(queries.getQuery(queryids[i]), index).keys(), 
+							posFeatureMaps, negFeatureMaps);
+				//extractDocumentFeature(posDocids, negDocids, processQuery(queries.getQuery(queryids[i]), index).keys(), outputFilename);
+			}catch(Exception e){
+				e.printStackTrace();
+				System.exit(1);
+			}
+			for (int j=0; j<posDocids.length; j++){
+				posFeature.put(posDocids[j], posFeatureMaps[j]);
+				docidQidMap.put(posDocids[j], queryids[i]);
+			}
+			for (int j=0; j<negDocids.length; j++){
+				negFeature.put(negDocids[j], negFeatureMaps[j]);
+				docidQidMap.put(negDocids[j], queryids[i]);
+			}
+		}
+		int[] posDocids = posFeature.keys(); int[] negDocids = negFeature.keys();
+		String[] posQids = new String[posDocids.length]; String[] negQids = new String[negDocids.length];
+		TIntObjectHashMap<Double>[] posFeatureMaps = new TIntObjectHashMap[posDocids.length];
+		TIntObjectHashMap<Double>[] negFeatureMaps = new TIntObjectHashMap[negDocids.length];
+		for (int i=0; i<posDocids.length; i++){
+			posFeatureMaps[i] = posFeature.get(posDocids[i]);
+			posQids[i] = docidQidMap.get(posDocids[i]);
+		}
+		for (int i=0; i<negDocids.length; i++){
+			negFeatureMaps[i] = negFeature.get(negDocids[i]);
+			negQids[i] = docidQidMap.get(negDocids[i]);
+		}
+		
+		writeDocumentFeature(posDocids, negDocids, posQids, negQids, posFeatureMaps, negFeatureMaps, outputFilename);
+	}
+	
+	/**
+	 * 
+	 * @param query The query string.
+	 * @param index Index.
+	 * @return Mapping from termid to qtf
+	 */
+	public static TIntIntHashMap processQuery(String query, Index index){
+		TIntIntHashMap map = new TIntIntHashMap();
+		System.out.println("query: "+query);
+		String[] tokens = query.split(" ");
+		Manager manager = new Manager(index);
+		Lexicon lexicon = index.getLexicon();
+		for (int i=0; i<tokens.length; i++){
+			String term = manager.pipelineTerm(tokens[i].toLowerCase());
+			// System.out.println((i+1)+": "+tokens[i]+" >>> "+term);
+			if (term!=null){
+				term = term.trim();
+				if (term.length()==0)
+					continue;
+				LexiconEntry lexEntry = null;
+				try{
+					lexEntry = lexicon.getLexiconEntry(term);
+				}catch(StringIndexOutOfBoundsException e){
+					System.err.println("term: "+term);
+					e.printStackTrace();
+					System.exit(1);
+				}
+				if (lexEntry!=null){
+					map.adjustOrPutValue(lexEntry.termId, 1, 1);
+				}
+			}
+		}
+		return map;
+	}
+	
+	public static void main(String[] args){
+		String[] featureNames = ApplicationSetup.getProperty("doc.feature.names", "").split(",");
+		if (args[0].equals("--onetopic")){
+			// --onetopic indexpath indexprefix qrelsname queryid outputname
+			String indexpath = args[1];
+			String indexprefix = args[2];
+			String qrelsname = args[3];
+			String queryid = args[4];
+			String outputFilename = args[5];
+			SVMLightFeatureExtractor app = new SVMLightFeatureExtractor(
+					Index.createIndex(indexpath, indexprefix), featureNames);
+			app.extractAndWriteDocumentFeature(qrelsname, queryid, outputFilename);
+		}else if (args[0].equals("--alltopics")){
+			// --alltopics indexpath indexprefix qrelsname outputname
+			String indexpath = args[1];
+			String indexprefix = args[2];
+			String qrelsname = args[3];
+			String outputFilename = args[4];
+			SVMLightFeatureExtractor app = new SVMLightFeatureExtractor(
+					Index.createIndex(indexpath, indexprefix), featureNames);
+			app.extractAndWriteDocumentFeature(qrelsname, outputFilename, false);
+		}else if (args[0].equals("--cached")){
+			// --alltopics qrelsname outputname
+			String qrelsname = args[1];
+			String outputFilename = args[2];
+			SVMLightFeatureExtractor app = new SVMLightFeatureExtractor(
+					null, featureNames);
+			app.extractAndWriteDocumentFeature(qrelsname, outputFilename, true);
+		}
+	}
+}

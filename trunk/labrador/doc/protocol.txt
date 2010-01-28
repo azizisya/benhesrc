@@ -1,0 +1,212 @@
+Overview Table
+--------------
+
+
+Client						|	Server
+--------------------------------------------------------------------
+HELO hostname:pid
+.
+							200 Welcome hostname:pid
+							.
+
+CONF
+.
+							201 Config follows
+							Config file contents
+							Config file contents
+							.
+
+NEXT (optional no)
+.
+							202 URLs follow
+							URL linking_URL
+							URL linking_URL
+							URL linking_URL
+							.
+							205 No Work
+							.
+
+FINISHED url
+url found
+url found
+url found
+.						
+							203 Thanks		
+							.
+
+ALLOWED url			
+.
+							203 OK to crawl
+							.
+							205 Denied by filters
+							.
+							
+
+ROBOTS hostname
+.
+							201 Robots.txt follows
+							Robots.txt file contents
+							Robots.txt file contents
+							Robots.txt file contents
+							.
+							209 Not yet
+							.
+ROBOTSFILE hostname
+Robots.txt file contents
+Robots.txt file contents
+Robots.txt file contents
+.
+							203 Thanks
+							.
+
+STATS
+statname1: value
+statname2: value
+statname3: value
+statname4: value
+.
+							203 Thanks
+							.
+
+MONITOR
+.
+							210 Statistics Follow
+							Stat1Name: Stat1Value
+							Stat2Name: Stat2Value
+							.
+
+WORK
+.
+							205 No work
+							.
+							206 Work
+							no of clients to fork
+							.
+
+FAILED url
+Reason
+.
+							203 Thanks
+							.
+
+NOOP
+.
+							203 OK
+							.
+
+QUIT
+.
+							208 Bye!
+							.<DISCONNECT>
+
+CHECKPOINT
+.
+							203 Ok, checkpointed.
+							.
+
+PAUSE
+.
+							203 Ok
+							.
+							209 Already paused!
+START
+.
+							203 Ok
+							.
+							209 Not paused!
+							.		
+STOP
+.
+							203 Ok
+							.
+
+FINGERPRINT md5sum
+URL
+.
+							201 Seen Already
+							OtherURL
+							.
+
+							209 First Seen
+							.
+
+CHECKPOINT
+.
+							203 Ok
+							.
+
+Verb Descriptions
+-----------------
+
+HELO
+I am a client, ready to do work. Here is my UID
+
+CONF
+I'd like to know what my configuration should be
+Can you please tell me it?
+
+NEXT
+Could I have some URLs to work on please? If followed
+by an integer, this is the number of URLs I'd like to
+work on, if possible.
+
+FINISHED url
+I've finished parsing this URL. Here are the links
+it contained - you should add these to your queue
+for filtering and crawling
+
+ROBOTS hostname
+Do you have the robots.txt file for hostname?
+
+ROBOTSFILE hostname
+Here is the contents of the robots.txt file for 
+hostname. Please save it in your cache.
+
+STATS
+Here are my stats, add these to your totals
+
+MONITOR
+Please give me all your available stats
+
+WORK
+Is there any work available yet? I'd like to fork
+some clients to do some work for you.
+
+NOOP
+Just checking the connection is OK. Meaningless packet.
+
+ALLOWED
+Can you check that this URL is allowed by the URL filters?
+
+FINGERPRINT
+Here is the fingerprint of this URL. Can you check if you've seen 
+it before.
+
+CHECKPOINT
+Please checkpoint your data structures to disk now.
+
+QUIT
+This process is shutting down (or at least disconnecting).
+Please disconnect me.
+
+Notes
+-----
+* Only HELO and QUIT are permitted if a client hasn't logged on yet 
+(ie called HELO)
+
+Return Messages
+--------------
+StatusNumber[space]Friendly Error Message
+.
+
+Generally speaking 2xx should be success error messages,
+and 3xx for messages
+
+Generic (Error) Messages
+----------------
+300 Client Error (produced in software by the client)
+301 Unknown Command
+302 Unimplemented Command
+303 Permission Denied (probably client hasn't logged on yet)
+304 Bad Syntax
+

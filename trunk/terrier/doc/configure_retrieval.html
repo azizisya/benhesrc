@@ -1,0 +1,179 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Configuring Retrieval</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" href="docs.css">
+</head>
+
+<body>
+<!--!bodystart-->
+[<a href="configure_indexing.html">Previous: Configuring Indexing</a>] [<a href="index.html">Contents</a>] [<a href="querylanguage.html">Next: Terrier Query Language</a>]
+<table width="100%">
+  <tr> 
+    <td width="82%" valign="bottom"><h1>Configuring Retrieval in Terrier</h1></td>
+	<!--!bodyremove-->
+    <td width="18%"><a href="http://ir.dcs.gla.ac.uk/terrier/"><img src="images/terrier-logo-web.jpg" border="0"></a></td>
+	<!--!/bodyremove-->
+  </tr>
+</table>
+
+<h2>Topics</h2>
+<p align="justify">After the end of the indexing process, we can proceed with retrieving from the 
+document collection. At this stage, the options for applying stemming or not, 
+removing stopwords or not, and the maximum length of terms, should be exactly 
+the same as the ones used for indexing the collection.</p>
+
+<p align="justify">In the file <tt>etc/trec.topics.list</tt>, we need to specify which 
+file contains the queries to process. Alternatively, we can specify the topic file by setting property <tt>trec.topics</tt> to the name of the topic file.
+
+<p align="justify">A last step before processing the queries is to specify which tags from the
+topics to use. We can do that by setting the properties <tt>TrecQueryTags.process</tt>, 
+which denotes which tags to process, <tt>TrecQueryTags.idtag</tt>, which stands for the 
+tag containing the query identifier, and <tt>TrecQueryTags.skip</tt>, which denotes
+which query tags to ignore.</p>
+
+<p align="justify">For example, suppose that the format of topics is the following:</p>
+<pre>
+&lt;TOP&gt;
+&lt;NUM&gt;123&lt;NUM&gt;
+&lt;TITLE&gt;title
+&lt;DESC&gt;description
+&lt;NARR&gt;narrative
+&lt;/TOP&gt;
+</pre>
+<p align="justify">If we want to skip the description and narrative (DESC and NARR tags
+respectively), and consequently use the title only, then we need to setup 
+the properties as follows:</p>
+<pre>
+TrecQueryTags.doctag=TOP
+TrecQueryTags.process=TOP,NUM,TITLE
+TrecQueryTags.idtag=NUM
+TrecQueryTags.skip=DESC,NARR
+</pre>
+<p align="justify">If alternatively, we want to use the title,
+description and the narrative tags to create the query, then we need to 
+setup the properties as follows:</p>
+<pre>
+TrecQueryTags.doctag=TOP
+TrecQueryTags.process=TOP,NUM,DESC,NARR,TITLE
+TrecQueryTags.idtag=NUM
+TrecQueryTags.skip=
+</pre>
+
+<p align="justify">The tags specified by TrecQueryTags are case-insensitive (note the difference from TrecDocTags). If you want them to be case-sensitive, then set <tt>TrecQueryTags.casesensitive=false</tt>.</p>
+
+<p align="justify">If you have test topics written in a language other than English, then you will hopefully have indexed with the <tt>string.use_utf</tt> property set. In this case, for retrieval, Terrier will use a more forgiving tokeniser for parsing the topic files is <tt>string.use_utf</tt> remains set.</p>
+
+<h2>Weighting Models and Parameters</h2>
+<p align="justify">Next, we need to specify which of the
+available weighting models we will use for assigning scores to the retrieved 
+documents. We do this by specifying the name of the corresponding class in the 
+file <tt>etc/trec.models</tt>, or by setting property <tt>trec.model</tt> to the name of model used. For example, if we are using the weighting scheme 
+InL2, then the models file should contain:</p>
+<pre>
+uk.ac.gla.terrier.matching.models.InL2
+</pre>
+
+<p align="justify">Terrier provides implementation of the following weighting models:</p>
+<ul>
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/BB2.html">BB2</a>: Bose-Einstein model for randomness, the ratio of
+two Bernoulli's processes for first normalisation, and Normalisation 2 for term frequency normalisation. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/BM25.html">BM25</a>: The BM25 probabilistic model. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/DFR_BM25.html">DFR_BM25</a>: The DFR version of BM25. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/DLH.html">DLH</a>: The DLH hyper-geometric DFR model. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/DLH13.html">DLH13</a>: An improved version of DLH. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/Hiemstra_LM.html">Hiemstra_LM</a>: Hiemstra's language model. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/IFB2.html">IFB2</a>: Inverse Term Frequency model for randomness, the ratio of
+two Bernoulli's processes for first normalisation, and Normalisation 2 for term frequency normalisation. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/In_expB2.html">In_expB2</a>: Inverse expected document frequency model for randomness, the ratio of two Bernoulli's processes for first normalisation, and Normalisation 2 for term frequency normalisation. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/In_expC2.html">In_expC2</a>: Inverse expected document frequency model for randomness, the ratio of two Bernoulli's processes for first normalisation, and Normalisation 2 for term frequency normalisation with natural logarithm. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/InL2.html">InL2</a>: Inverse document frequency model for randomness, Laplace succession for first normalisation, and Normalisation 2 for term frequency normalisation. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/LemurTF_IDF.html">LemurTF_IDF</a>: Lemur's version of the tf*idf weighting function. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/PL2.html">PL2</a>: Poisson estimation for randomness, Laplace succession for first normalisation, and Normalisation 2 for term frequency normalisation. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/TF_IDF.html">TF_IDF</a>: The tf*idf weighting function, where tf is given by Robertson's tf and idf is given by the standard Sparck Jones' idf. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/languagemodel/PonteCroft.html">PonteCroft</a>: Ponte &amp; Croft's language model. This is the only model for which special index structures are needed. To use it, ensure that the special index structure is created by <tt>bin/trec_terrier.sh -i -l</tt>. The model was implemented as written in the paper. Possible improvements, such as using sums of logs to avoid product of small probabilities, are not considered in the implementation. </li>
+
+<li> <a href="javadoc/uk/ac/gla/terrier/matching/models/DFRWeightingModel.html">DFRWeightingModel</a>: This class provides an alternative way of specifying the weighting model to be used. For usage, see <a href="extend_retrieval.html">Extending Retrieval</a>. </li>
+
+</ul> 
+
+<p align="justify">To process the queries, we can type the following:</p>
+<pre>
+bash-2.05b$ bin/trec_terrier.sh -r -c 1.0
+</pre>
+<p align="justify">where the option <tt>-r</tt> specifies that we want to perform retrieval, and the 
+option <tt>-c 1.0</tt> specifies the parameter value for the term frequency 
+normalisation.</p>
+
+<p align="justify">If Ponte &amp; and Croft's language model is used, we need to use option -l:</p>
+
+<pre>
+bash-2.05b$ bin/trec_terrier.sh -r -l
+</pre>
+
+<h2>Query Expansion</h2>
+<p align="justify">Terrier also offers a query expansion functionality. For a brief 
+  description of the query expansion module, you may view the <a href="dfr_description.html#queryexpansion">query 
+  expansion section of the DFR Framework description</a>. The term weighting model 
+  used for expanding the queries with the most informative terms of the top-ranked 
+  documents is specified in the file etc/qemodels. This file contains the class 
+  names of the term weighting models to be used for query expansion. The default 
+  content of the file is:</p>
+<pre>
+uk.ac.gla.terrier.matching.models.queryexpansion.Bo1  
+</pre>
+<p align="justify">In addition, there are two parameters that can be set for applying query
+expansion. The first one is the number of terms to expand a query with. It
+is specified by the property <tt>expansion.terms</tt>, the default value of which is 
+<tt>10</tt>. Moreover, the number of top-ranked documents from which these terms are 
+extracted, is specified by the property <tt>expansion.documents</tt>, the default
+value of which is 3.</p>
+
+<p align="justify">To retrieve from an indexed test collection, using query expansion, 
+with the term frequency normalisation parameter equal to 1.0, we can type:</p>
+<pre>
+bash-2.05b$ bin/trec_terrier.sh -r -q -c 1.0 
+</pre>
+
+
+<h2>Other Configurables</h2>
+<p align="justify">The results are saved in the directory var/results 
+in a file named as follows:</p>
+<pre>
+"weighting scheme" c "value of c"_counter.res
+</pre>
+<p align="justify">For example, if we have used the weighting scheme PL2 with c=1.28 and 
+the counter was 2, then the filename of the results would be <tt>PL2c1.28_3.res</tt>.</p>
+
+<p align="justify"> For each query, Terrier returns a maximum number of 1000 documents by default. We can change the maximum number of returned documents per query by changing <tt>matching.retrieved_set_size</tt>. For example, if we want to retrieve 10000 document for each given query, we need to set <tt>matching.retrieved_set_size</tt> to 10000. In addition, we need to set the rank of the last returned document to 9999 in <tt>querying.default.controls</tt>. </p>
+
+<p align="justify">Some of the weighting models, e.g. BM25, assume low document frequencies of query terms. For these models, it is worth ignoring query terms with high document frequency during retrieval by setting <tt>ignore.low.idf.terms</tt> to true.Moreover, it is better to set <tt>ignore.low.idf.terms</tt> to false for high precision search tasks such as named-page finding.</p>
+
+<p></p>
+
+[<a href="configure_indexing.html">Previous: Configuring Indexing</a>] [<a href="index.html">Contents</a>] [<a href="querylanguage.html">Next: Terrier Query Language</a>]
+<!--!bodyend-->
+<hr>
+<small>
+Webpage: <a href="http://ir.dcs.gla.ac.uk/terrier">http://ir.dcs.gla.ac.uk/terrier</a><br>
+Contact: <a href="mailto:terrier@dcs.gla.ac.uk">terrier@dcs.gla.ac.uk</a><br>
+<a href="http://www.dcs.gla.ac.uk/">Department of Computing Science</a><br>
+
+Copyright (C) 2004-2008 <a href="http://www.gla.ac.uk/">University of Glasgow</a>. All Rights Reserved.
+</small>
+</body>
+</html>

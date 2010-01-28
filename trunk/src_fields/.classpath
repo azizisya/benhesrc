@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="uk/ac/gla/terrier/matching/models/AmsterdamLMF.java" kind="src" path=""/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/terrier2"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/log4j-1.2.9.jar"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/trove.jar"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/antlr-2.7.4.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/src_statistics"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/src_links"/>
+	<classpathentry kind="output" path=""/>
+</classpath>

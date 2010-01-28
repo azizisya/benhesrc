@@ -1,0 +1,12 @@
+config
+unix
+win
+terrier-*.tar
+terrier-*.tar.gz
+terrier-*.tar.bz2
+terrier-*.zip
+
+.classpath
+.project
+classes
+*.class

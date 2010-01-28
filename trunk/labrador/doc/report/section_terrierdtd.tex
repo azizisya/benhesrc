@@ -1,0 +1,30 @@
+\chapter{Terrier DTD}\label{terrier_dtd}
+\renewcommand{\baselinestretch}{1.0}
+\begin{verbatim}
+<!DOCTYPE terrier [
+<!ELEMENT terrier (results query suggestions?)>
+
+<!ELEMENT query   (#CDATA)>
+
+<!ELEMENT results (result+)>
+<!ELEMENT result  (score? url? title? description? results?)>
+<!ELEMENT url     (#CDATA)>
+<!ELEMENT title   (#CDATA)>
+<!ELEMENT description (#CDATA)>
+<!ELEMENT score   (#CDATA)>
+
+<!ELEMENT suggestions (suggestion +)>
+<!ELEMENT suggestion (score? query)>
+
+<!ATTLIST terrier method CDATA>
+
+<!ATTLIST results count CDATA "0">
+
+<!ATTLIST result number CDATA #REQUIRED>
+<!ATTLIST result docid CDATA #REQUIRED>
+
+<!ATTLIST suggestions count CDATA "0">
+<!ATTLIST suggestion  number CDATA #REQUIRED>
+]>
+\end{verbatim}
+\renewcommand{\baselinestretch}{1.5}

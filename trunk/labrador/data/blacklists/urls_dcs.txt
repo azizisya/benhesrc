@@ -1,0 +1,4 @@
+http://www.dcs.gla.ac.uk/cgi-bin/betsie/parser.pl
+http://www.dcs.gla.ac.uk/~norman/Favorites/
+http://www.dcs.gla.ac.uk/people/personal/norman/Favorites/
+http://www.dcs.gla.ac.uk/scripts/global/equator/moin.cgi

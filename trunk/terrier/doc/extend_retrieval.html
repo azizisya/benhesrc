@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Extending Retrieval</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" href="docs.css">
+</head>
+
+<body>
+<!--!bodystart-->
+[<a href="extend_indexing.html">Previous: Extending Indexing</a>] [<a href="index.html">Contents</a>] [<a href="languages.html">Next: Non English language support</a>]
+<table width="100%">
+  <tr> 
+    <td width="82%" valign="bottom"><h1>Extending Retrieval in Terrier</h1></td>
+		<!--!bodyremove-->
+    <td width="18%"><a href="http://ir.dcs.gla.ac.uk/terrier/"><img src="images/terrier-logo-web.jpg" border="0"></a></td>
+		<!--!/bodyremove-->
+  </tr>
+</table>
+
+
+<h2>Altering the retrieval process</h2>
+<P ALIGN=JUSTIFY>
+It is very easy to alter the retrieval process in Terrier, as there are many "hooks" at which external classes can be involved. Firstly, you are free when writing your own application to render the results from Terrier in your own way. Results in Terrier come in the form of a <a href="javadoc/uk/ac/gla/terrier/matching/ResultSet.html">ResultSet</a>.
+</p>
+<P ALIGN=JUSTIFY>
+An application's interface with Terrier is through the <a href="javadoc/uk/ac/gla/terrier/querying/Manager.html">Manager</a> class. The manager firstly pre-processes the query, by applying it to the configured <a href="javadoc/uk/ac/gla/terrier/terms/TermPipeline.html">TermPipeline</a>. Then it calls the <a herf="javadoc/uk/ac/gla/terrier/matching/Matching.html">Matching</a> class, which is responsible for matching documents to the query, and scoring the documents using a <a href="javadoc/uk/ac/gla/terrier/matching/models/WeightingModel.html">WeightingModel</a>. There are two forms of hooks into the Matching process: firstly, the score of a term in a document can be modified using the application of a <a href="javadoc/uk/ac/gla/terrier/matching/tsms/TermScoreModifier.html">TermScoreModifier</a>; secondly, the overall score of a document to the entire query can be modified by using a <a href="javadoc/uk/ac/gla/terrier/matching/dsms/DocumentScoreModifier.html">DocumentScoreModifier</a>. Both these can be set using the <tt>matching.tsms</tt> and <tt>matching.dsms</tt> properties.</p>
+
+<P ALIGN=JUSTIFY>Once the <a href="javadoc/uk/ac/gla/terrier/matching/ResultSet.html">ResultSet</a> has been returned to the <a href="javadoc/uk/ac/gla/terrier/querying/Manager.html">Manager</a>, there are two further phases, namely <a href="javadoc/uk/ac/gla/terrier/querying/PostProcess.html">PostProcessing</a> and <a href="javadoc/uk/ac/gla/terrier/querying/PostFilter.html">PostFiltering</a>. In PostProcessing, the ResultSet can be altered in any way - for example, <a href="javadoc/uk/ac/gla/terrier/querying/QueryExpansion.html">QueryExpansion</a> expands the query, and then calls Matching again to generate an improved ranking of documents. PostFiltering is simpler, allowing documents to be either included or excluded - this is ideal for interactive applications where users want to restrict the domain of the documents being retrieved.</p>
+
+<h2>Document Priors</h2>
+<P ALIGN=JUSTIFY>Use a <a href="javadoc/uk/ac/gla/terrier/matching/dsms/DocumentScoreModifier.html">DocumentScoreModifier</a> to integrate
+document priors into the retrieval strategy.</p>
+
+<h2>Advanced Weighting Models</h2>
+<P ALIGN=JUSTIFY>It is very easy to implement your own weighting models in Terrier. Simply write a new class that extends <a href="javadoc/uk/ac/gla/terrier/matching/models/WeightingModel.html">WeightingModel</a>. What's more, there are many examples weighting models in <a href="javadoc/uk/ac/gla/terrier/matching/models/package-summary.html">uk.ac.gla.terrier.matching.models</a>.
+<p></p>
+<b>Generic Divergence From Randomness (DFR) Weighting Models</b>
+<P ALIGN=JUSTIFY>The <a href="javadoc/uk/ac/gla/terrier/matching/models/DFRWeightingModel.html">DFRWeightingModel</a> class provides an interface for freely combining different components of the DFR framework. It
+breaks a DFR weighting model into three components: the basic model
+for randomness, the first normalisation by the after effect, and term
+frequency normalisation. Details of these three components can be found from <a HREF="dfr_description.html">a description of the DFR framework</a>. The DFRWeightingModel class provides an alternate and more
+flexible way of using the DFR weighting models in Terrier. For
+example, to use the <a href="javadoc/uk/ac/gla/terrier/matching/models/PL2.html">PL2</a> model, the name of the model <tt>PL2</tt> should
+be given in <tt>etc/trec.models</tt>, or set using the property <tt>trec.model</tt>.
+Alternatively, using the DFRWeightingModel class, we can replace
+<tt>PL2</tt> with <tt>DFRWeightingModel(P, L, 2)</tt>, where the three
+components of PL2 are specified in the brackets, separated by commas.
+If we do not want to use one of the three components, for example
+the first normalisation L, we can leave the space for this component
+blank (i.e. <tt>DFRWeightingModel(P, , 2)</tt>). We can also discard term
+frequency normalisation by removing the 2 between the brackets (i.e. <tt>DFRWeightingModel(P, , )</tt>).
+However, a basic randomness model must always be given.</P>
+
+<P ALIGN=JUSTIFY>The basic randomness models, the first normalisation
+methods, and the term frequency normalisation methods are included in
+packages <a href="javadoc/uk/ac/gla/terrier/matching/models/basicmodel/package-summary.html">uk.ac.gla.terrier.matching.models.basicmodel</a>, <a href="javadoc/uk/ac/gla/terrier/matching/models/aftereffect/package-summary.html">uk.ac.gla.terrier.matching.models.aftereffect</a> and <a href="javadoc/uk/ac/gla/terrier/matching/models/normalisation/package-summary.html"> uk.ac.gla.terrier.matching.models.normalisation</a>, respectively. Many implementations of each are provided, allowing a vast number of DFR weighting models to be generated.</P>
+
+
+<h2>Implementing your own Matching strategies</h2>
+<p align="justify">Sometimes you want to implement an entirely new way of weighting documents that does not fit within the confines of the WeightingModel class. In this case, it's best to implement your own Matching sub-class, in a similar manner to <a href=javadoc/uk/ac/gla/terrier/matching/LMMatching.html">LMMatching</a>, which is used to implement the PonteCroft language modelling approach.</p>
+
+<h2>Using Terrier Indices in your own code</h2>
+<ul><li><b>How many documents does term X occur in?</b></li><br>
+<pre>
+Index index = Index.createIndex();
+Lexicon lex = index.getLexicon();
+LexiconEntry le = lex.getLexiconEntry("X");
+if (le != null)
+	System.out.println("Term X occurs in "+ le.n_t + " documents");
+else
+	System.out.println("Term X does not occur");
+</pre>
+<br>
+<li><b>What is the probability of term Y occurring in the collection?</b><br></li>
+<pre>
+Index index = Index.createIndex();
+Lexicon lex = index.getLexicon();
+LexiconEntry le = lex.getLexiconEntry("X");
+double p = le == null 
+	?  0.0d
+	: (double) le.TF / index.getCollectionStatistics().getNumberOfTokens();
+	<br>
+</pre>
+<br>
+<li><b>What terms occur in the 10th document?</b><br></li>
+<pre>
+Index index = Index.createIndex();
+DirectIndex di = index.getDirectIndex();
+Lexicon lex = index.getLexicon();
+int[][] postings = di.getTerms(10);
+for(int i=0;i&lt;postings[0].length; i++)
+{
+	LexiconEntry le = lex.getLexiconEntry( postings[0][i]);
+	System.out.print(le.term + " with frequency "+ postings[1][i]);
+}
+</pre>
+<br>
+<li><b>What documents does term Z occur in?</b><br></li>
+<pre>
+Index index = Index.createIndex();
+InvertedIndex di = index.getInvertedIndex();
+DocumentIndex doi = index.getDocumentIndex();
+Lexicon lex = index.getLexicon();
+LexiconEntry le = lex.getLexiconEntry( "Z" );
+int[][] postings = ii.getDocuments(le);
+for(int i=0;i&lt;postings[0].length; i++)
+{
+	System.out.println(doi.getDocumentNumber(postings[0][i]) 
+		+ " with frequency "+ postings[1][i]);
+}
+</pre>
+</ul>
+<p align="justify">
+Moreover, if you're not comfortable with using Java, you can dump the indices of a collection using the --print* options of TrecTerrier. See the javadoc of <a href="javadoc/TrecTerrier.html">TrecTerrier</a> for more information.</p>
+<p></p>
+
+<h3>Example Querying Code</h3>
+<p aling="justify">Below, you can find a example sample of using the querying functionalities of Terrier.</p>
+<pre>
+String query = "term1 term2";
+SearchRequest srq = queryingManager.newSearchRequest("queryID0", query);
+srq.addMatchingModel("Matching", "PL2");
+queryingManager.runPreProcessing(srq);
+queryingManager.runMatching(srq);
+queryingManager.runPostProcessing(srq);
+queryingManager.runPostFilters(srq);
+ResultSet rs = srq.getResultSet();
+</pre>
+
+<p></p>
+
+[<a href="extend_indexing.html">Previous: Extending Indexing</a>] [<a href="index.html">Contents</a>] [<a href="languages.html">Next: Non English language support</a>]
+<!--!bodyend-->
+<hr>
+<small>
+Webpage: <a href="http://ir.dcs.gla.ac.uk/terrier">http://ir.dcs.gla.ac.uk/terrier</a><br>
+Contact: <a href="mailto:terrier@dcs.gla.ac.uk">terrier@dcs.gla.ac.uk</a><br>
+<a href="http://www.dcs.gla.ac.uk/">Department of Computing Science</a><br>
+
+Copyright (C) 2004-2008 <a href="http://www.gla.ac.uk/">University of Glasgow</a>. All Rights Reserved.
+</small>
+</body>
+</html>

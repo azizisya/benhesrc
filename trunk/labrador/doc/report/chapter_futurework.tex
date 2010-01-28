@@ -1,0 +1,49 @@
+\chapter{Future Work}\label{chp-future}
+\section{Refreshing crawls}
+According to Kahle(1997), only 40\%\cite{kahle97archiving} of the web pages on the Internet change each month. It clearly follows that recrawling and fetching each page every time a crawl is refreshed is wasteful of resources. Hence many crawlers have implemented recrawling policies that determine which pages will be fetched:
+\begin{itemize}
+\item{If the page has changed since it was last fetched. This can be achieved using the If-Modified-Since HTTP header, which allows a conditional fetch of the page.}
+\item{Based on the importance that the search engine places on the page. This could be based on user feedback about the page (either explicit feedback, or `click-throughs'), or by rating the page's importance using link analysis on the previous crawl.}
+\item{Based on the crawler's previous experience about how often the page changes}
+\end{itemize}
+Obviously, it is desirable that Labrador should be able to save resources by recrawling only the pages that have changed, instead of recrawling the entire target domain when the index needs refreshed. In order to achieve this, Labrador needs to be able to interpret its data files from the previous crawl and use them to obtain the seeding URLs for the next crawl.
+
+\section{URL Ordering}
+If the crawler intends to download every page it finds, then any order of URLs suffice. However, if the target crawl domain is larger than the available disk space in which the crawler has to save the crawl\cite{kahle97archiving}, then it is crucial that the more `important' pages are fetched before the lesser ones\cite{ref5}.\\
+\ \\
+There are many ways to order the queue of URLs to be fetched. Some methods are static, for example based on the order the URLs are discovered - such as Breadth-first (which has been shown to yield quality pages first\cite{ref8}) or Depth-first traversals\footnotemark. Alternative orderings are calculated dynamically, based on a heuristic - examples are:
+\begin{itemize}
+\item{Using evidence found in the page.}
+\item{Back or forward link counts.}
+\item{PageRank.}
+\end{itemize}
+
+Labrador currently has no provision for dynamically re-ordering its queues, but this would of course be an advantageous development to the system.
+
+\footnotetext{Note that Labrador currently provides both Breadth-first and Depth-first traversal modules}
+
+\section{Topic-focussed Crawler}
+On a similar vein, the Information Retrieval Research Group has expressed an interest in Labrador having the capability of being configured as a topic-focussed crawler. Topic-focussed crawlers work similarly to an Internet user browsing web pages of similar topics. The users follow links to pages which they believe to be relevant to them in their topic of interest. Implementing a topic-focussed crawler requires the crawler to be able to rate the relevance of the page to the crawler's topic of interest at crawl time\cite{ref9}. This would be an interesting addition to Labrador's capabilities, allowing futher research to be performed on topic-focussed crawls and Information Retrieval topic-specific collections of data.
+
+\section{Partition Balancing and Migration}
+Over the process of crawling a restricted domain crawl, some crawlers may find them unable to keep abreast of the queues for the hosts that have been assigned to them, as they have reached the maximum URLs/second rate they can attain. An indicator of this occuring is when the typical delay between two fetches to one host is greater than the host delay. However, another crawler process may not have enough work to prevent it having to sleep regularly, usually when it is waiting for the host delay to expire on the hosts from which it is currently fetching. In this scenario, it would be more effective if the dispatcher was to recognise this problem and refuse to allocate any more new partitions to the backlogged crawlers, in order to balance the workload evenly between all crawlers. Note that it is not sufficient for the dispatcher to balance the number of partitions assigned to each crawler, because partitions are not necessarily of even sizes. Currently, Labrador will asssign new partitions to the first crawler process that asks for more work. \\
+\ \\
+Similarly towards the end of a crawl, there are often more crawler processes running than is necesssary. This scenario occurs if more than one crawler is regularly sleeping whilst waiting for Host Delay to expire for its hosts. When this happens, the dispatcher could make the decision to migrate one of the crawlers partitions to the another and shut it down. Note: This would involve the crawler that is to be shutdown having to send its queues back to the dispatcher, to prevent the loss of the queues currently held on that crawler. By consolidating the number of crawler processes, this would free up resources on some crawler machines. However, consolidation should not cause overloading (backlogging) of the crawler machines that remain. Consolidation should only use the excess time each remaining crawler had prior to migration. If a combination of consolidation and balancing is required to achieve the perfect number of crawlers, then the algorithm should have provisions to prevent thrashing, meaning that the some delay should be introduced between a consolidation and balancing operations.
+
+\section{Robustness and Control}
+\subsection{Real-time tunability}
+Although Labrador comes with a rich configuration file and can highly configured without writing additional code, sometimes it is only once a crawl has started that it becomes apparent that some parameters need adjustment. Examples of this might be:
+\begin{itemize}
+\item{You wish to reduce the overall network usage. This may be because the crawl is consuming too much of the network's bandwidth, to the detremement of other users on the network.}
+\item{A site may have asked to be removed from the current crawl, so has to be blacklisted, with immediate effect.}
+\end{itemize}
+To perform any of these tasks during a crawl would required configuration changes to be made during the crawl. Unfortunately, Labrador does not support this functionality and the crawl operator has no option but to terminate and restart the crawl to change the configuration. This is because Labrador's communications protocol is based on the crawler processes asking questions of the dispatcher and the dispatcher answering. This leaves no support for pushing information from the dispatcher to each of the clients. I would suggest a UDP server setup on each crawler to allow information to be pushed to crawlers. This could be as simple as just `suggesting' a command that the crawler should execute the next time it calls the dispatcher. Such functionality would allow the dispatcher to inform crawlers of the configuration changes, without having to terminate the crawl.
+\subsection{Persistence and Checkpointing}
+In a partially-distributed architecture such as Labrador's, the dispatcher is a critical component because the entire crawl will fail should the dispatcher crash. It would be possible for crawlers to continue crawling until the dispatcher returned, however the dispatcher would then have lost its data structures and be unable to continue the crawl.\\
+\ \\
+The essential functionality required is for the dispatcher to be able to save its data structures to disk occasionally, known as a checkpoint. True ACID properties are not required, it is sufficient that the crawl will repeat the pages between the checkpoint and the crash\cite{ref1}. When the dispatcher is restarted after a crash, it should detect that it had crashed, then restore itself to the state saved at the last checkpoint and recommence the crawl from there.\\
+\ \\
+Some work has been done towards persistence, however more work needs to be done. For example, currently the dispatcher can restart and restore its data structures. However, in a partitioned crawl, the most valuable data, the URL queues, are maintained at the crawlers. When a crawler fails, the crawl will have lost the queues held at that crawler. Thus a crawl checkpoint should involve the crawlers serializing their URL queues and passing them back to the dispatcher to be checkpointed along with its own data structures.\\
+\ \\
+Additionally, this would allow bugs in the software of a crawler or dispatcher to be corrected mid-crawl and the crawler restarted, which would be an advantage\cite{ref1}.
+

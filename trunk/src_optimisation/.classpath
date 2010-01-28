@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path=""/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/latest/log4j-1.2.9.jar"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/latest/trove-2.0rc1.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/terrier2"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/OptimizationJ2SEDemo.jar"/>
+	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/ireval.jar"/>
+	<classpathentry kind="output" path=""/>
+</classpath>
