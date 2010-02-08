@@ -273,8 +273,12 @@ public class IndexUtility {
 	public static void dumpDoc(int docid, DirectIndex directIndex, Lexicon lexicon){
 		int[][] pointers = directIndex.getTerms(docid);
 		int blockindex = 0;
-		for (int j = 0; j < pointers[0].length; j++) {
-			try{
+		for (int i = 0; i < pointers[0].length; i++) {
+			int termid = pointers[0][i];
+			int tf = pointers[1][i];
+			String term = lexicon.getLexiconEntry(pointers[0][i]).term;
+			System.out.println(termid+", "+term+", "+tf);
+			/*try{
 			System.out.print(
 				"("
 					+ pointers[0][j]
@@ -291,12 +295,12 @@ public class IndexUtility {
 				System.err.println("termid: "+pointers[0][j]);
 				e.printStackTrace();
 				System.exit(1);
-			}
-			for (int k = 0; k < pointers[3][j]; k++) {
+			}*/
+			/*for (int k = 0; k < pointers[3][j]; k++) {
 				System.out.print(", " + pointers[4][blockindex]);
 				blockindex++;
 			}
-			System.out.print(")");
+			System.out.print(")");*/
 		}
 	}
 	/**
