@@ -823,6 +823,7 @@ import uk.ac.gla.terrier.utility.Rounding;
 			System.out.println("--csv2svm csvFilename outputFilename normalDelimiter");
 			System.out.println("--sortcollectionspec specfilename");
 			System.out.println("--csv2svm csvFilename outputFilename normalDelimiter");
+			System.out.println("--dumpdoc docid indexPath indexPrefix");
 			System.out.println("--inversevalues filename");
 			System.out.println("--processoptermlist filename outputfilename");
 			System.out.println("--changeofbaselinescores baselinefilename scorefilename outputfilename numberofqueries resultsize");
@@ -920,7 +921,11 @@ import uk.ac.gla.terrier.utility.Rounding;
 					int topXNonRel = Integer.parseInt(args[5]);
 					String label = "_"+topdocs+"_"+topXRel+"_"+topXNonRel;
 					UtilApps.createRFTrackFeedback(args[1], args[2], topdocs, topXRel, topXNonRel, label);
-				}else if(args[0].equals("--printmean")){
+				}else if (args[0].equals("--dumpdoc")){
+					// --dumpdoc docid indexPath indexPrefix
+					IndexUtility.dumpDoc(Integer.parseInt(args[1]), Index.createIndex(args[2], args[3]));
+				}
+				else if(args[0].equals("--printmean")){
 					// --printmean resultfilename column
 					DataUtility.printMeanValue(args[1], Integer.parseInt(args[2]));
 				}else if(args[0].equals("--filteropinionwordlist")){
