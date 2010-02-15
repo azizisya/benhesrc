@@ -3,7 +3,7 @@ package uk.ac.gla.terrier.matching.models.proximity;
 import uk.ac.gla.terrier.statistics.StirlingFormula;
 import uk.ac.gla.terrier.utility.ApplicationSetup;
 
-public class SurvP extends DistModel {
+public class SurvHPP extends DistModel {
 	protected double lambda = Double.parseDouble(ApplicationSetup.getProperty("proximity.lambda", "1d"));
 	
 	protected double getProbability(int dist){
