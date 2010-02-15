@@ -85,9 +85,11 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 	
 	/** The size of the considered ngrams */
 	protected int ngramLength = Integer.parseInt(ApplicationSetup.getProperty("proximity.ngram.length","2"));
-	protected int ngramLength_SD = Integer.parseInt(ApplicationSetup.getProperty("proximity.ngram.SD.length","2"));
+	// protected int ngramLength_SD = Integer.parseInt(ApplicationSetup.getProperty("proximity.ngram.SD.length","2"));
 	/** type of proximity to use */	
-	protected String dependency = ApplicationSetup.getProperty("proximity.dependency.type", "FD");
+	// protected String dependency = ApplicationSetup.getProperty("proximity.dependency.type", "FD");
+	protected boolean ORDERED;
+	protected boolean UNORDERED;
 	protected boolean onlyHighWeightQTerms = Boolean.parseBoolean(ApplicationSetup.getProperty("proximity.high.weight.terms.only", "true"));
 	protected final int phraseQTWfnid = Integer.parseInt(ApplicationSetup.getProperty("proximity.qtw.fnid", "1"));
 
@@ -222,8 +224,8 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 
 	}*/
 	
-	public void computeFDScore(String term1, String term2, double phraseTermWeight1, double phraseTermWeight2, double[] scores,
-			double[] score_u, int[] docids, double ngramC, int ngramLength, boolean cache){
+	public void computeProximityScore(String term1, String term2, double phraseTermWeight1, double phraseTermWeight2, double[] scores,
+			double[] score_u, double[] score_o, int[] docids, double ngramC, int ngramLength, boolean cache){
 		double combinedPhraseQTWWeight = 1d;
 		switch (phraseQTWfnid) {
 			case 1: combinedPhraseQTWWeight = 0.5d * phraseTermWeight1 + 0.5d * phraseTermWeight2; 
@@ -254,9 +256,15 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 		final int postings2Length = postings2[0].length;
 	
 		TIntDoubleHashMap ngramFrequencies = new TIntDoubleHashMap(docids.length);
+		TIntDoubleHashMap ngramFrequencies_o1 = new TIntDoubleHashMap(docids.length);
+		TIntDoubleHashMap ngramFrequencies_o2 = new TIntDoubleHashMap(docids.length);
 		final int docidsLength = docids.length;
 		int ngramDocumentFrequency = 0;
 		int ngramCollectionFrequency = 0;
+		int ngramDocumentFrequency_o1 = 0;
+		int ngramCollectionFrequency_o1 = 0;
+		int ngramDocumentFrequency_o2 = 0;
+		int ngramCollectionFrequency_o2 = 0;
 		// count ngram frequencies
 		for (int docid : docids) {
 
@@ -275,23 +283,51 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 
 	
 			final int docLength = doi.getDocumentLength(docid);	
-			final double matchingNGrams = proxModel.getNGramFrequency(postings1[4], start1, end1, postings2[4], start2, end2, ngramLength, docLength);
-				//Distance.noTimes(postings1[4], start1, end1,  postings2[4], start2, end2, ngramLength, docLength);
-   			//if we found matching ngrams, we score them
-   			if (matchingNGrams > 0) {
-   				ngramDocumentFrequency++;
-   				ngramCollectionFrequency+=matchingNGrams;
+			if (UNORDERED){
+				final double matchingNGrams = proxModel.getNGramFrequency(postings1[4], start1, end1, postings2[4], start2, end2, ngramLength, docLength);
+	   			//if we found matching ngrams, we score them
+	   			if (matchingNGrams > 0) {
+	   				ngramDocumentFrequency++;
+	   				ngramCollectionFrequency+=matchingNGrams;
+	   			}
+	   			ngramFrequencies.put(docid, matchingNGrams);
    			}
-   			ngramFrequencies.put(docid, matchingNGrams);
+			if (ORDERED){
+				double matchingNGrams = proxModel.getNGramFrequencyOrdered(postings1[4], start1, end1, postings2[4], 
+						start2, end2, ngramLength, docLength);
+	   			//if we found matching ngrams, we score them
+	   			if (matchingNGrams > 0) {
+	   				ngramDocumentFrequency_o1++;
+	   				ngramCollectionFrequency_o1+=matchingNGrams;
+	   			}
+	   			ngramFrequencies_o1.put(docid, matchingNGrams);
+	   			matchingNGrams = proxModel.getNGramFrequencyOrdered(postings2[4], start2, end2, postings1[4], 
+						start1, end1, ngramLength, docLength);
+	   			//if we found matching ngrams, we score them
+	   			if (matchingNGrams > 0) {
+	   				ngramDocumentFrequency_o2++;
+	   				ngramCollectionFrequency_o2+=matchingNGrams;
+	   			}
+	   			ngramFrequencies_o2.put(docid, matchingNGrams);
+   			}
 		}
 		// assign scores
-		this.assignScores(scores, score_u, docids, ngramC, ngramFrequencies, ngramCollectionFrequency, ngramDocumentFrequency, combinedPhraseQTWWeight);
+		if (UNORDERED)
+			assignScores(/*scores, */score_u, docids, ngramC, ngramFrequencies, ngramCollectionFrequency, ngramDocumentFrequency, combinedPhraseQTWWeight);
+		if (ORDERED){
+			assignScores(/*scores, */score_o, docids, ngramC, ngramFrequencies_o1, ngramCollectionFrequency_o1, 
+					ngramDocumentFrequency_o1, combinedPhraseQTWWeight);
+			assignScores(/*scores, */score_o, docids, ngramC, ngramFrequencies_o2, ngramCollectionFrequency_o2, 
+					ngramDocumentFrequency_o2, combinedPhraseQTWWeight);
+		}
 		postings1 = null; postings2 = null;
 		ngramFrequencies.clear(); ngramFrequencies = null;
+		ngramFrequencies_o1.clear(); ngramFrequencies_o1 = null;
+		ngramFrequencies_o2.clear(); ngramFrequencies_o2 = null;
 		System.gc();
 	}
 	
-	public void assignScores(double[] scores, double[] score_u, int[] docids, double ngramC, 
+	public void assignScores(double[] score_prox, int[] docids, double ngramC, 
 			TIntDoubleHashMap ngramFreqMap, int ngramCollFreq, int ngramDocFreq, double keyFrequency){
 		int n = docids.length;
 		model.setAverageDocumentLength(this.avgDocLen);
@@ -321,9 +357,9 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 			if (matchingNGrams != 0){
 				final double score = model.score(matchingNGrams, numberOfNGrams);
 				if (Double.isInfinite(score) || Double.isNaN(score)) {
-					logger.warn("docid: " + docids[k] + ", docLength:" + docLength + ", matchingNGrams: " + matchingNGrams + ", original score: " + scores[k] + "avgdoclen = "+ avgDocLen);
+					// logger.warn("docid: " + docids[k] + ", docLength:" + docLength + ", matchingNGrams: " + matchingNGrams + ", original score: " + scores[k] + "avgdoclen = "+ avgDocLen);
 				} else
-					score_u[k] += score;
+					score_prox[k] += score;
 				modifiedCounter++;
 			}
 		}
@@ -336,7 +372,7 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 		numTokens = collStats.getNumberOfTokens();
 		numDocs = (long)(collStats.getNumberOfDocuments());
 		avgDocLen =  ((double)(numTokens - numDocs *(ngramLength-1))) / (double)numDocs;
-		avgDocLen_SD = ((double)(numTokens - numDocs*(ngramLength_SD - 1))) / (double)numDocs;
+		// avgDocLen_SD = ((double)(numTokens - numDocs*(ngramLength - 1))) / (double)numDocs;
 		lexicon = index.getLexicon();
 	}
 	
@@ -371,11 +407,11 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 			model.setNumberOfDocuments(numDocs);
 			model.setNumberOfTokens((double)(numTokens - numDocs *(ngramLength-1)));
 			avgDocLen =  ((double)(numTokens - numDocs *(ngramLength-1))) / (double)numDocs;
-			avgDocLen_SD = ((double)(numTokens - numDocs*(ngramLength_SD - 1))) / (double)numDocs;
+			// avgDocLen_SD = ((double)(numTokens - numDocs*(ngramLength_SD - 1))) / (double)numDocs;
 			lexicon = index.getLexicon();
 		}
 		
-		w_t = Double.parseDouble(ApplicationSetup.getProperty("proximity.w_t","1.0d"));
+		// w_t = Double.parseDouble(ApplicationSetup.getProperty("proximity.w_t","1.0d"));
 		proxModel = ProximityModel.getDefaultProximityModel();
 		// if the geometric relevance score will be combined with the content-based relevance score.
 		boolean combinedModel = Boolean.parseBoolean(ApplicationSetup.getProperty("geo.combined", "true"));
@@ -390,7 +426,7 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 		//unordered dependence scores
 		double[] score_u = new double[scores.length];
 		//phraseterm - opinionTerm dependence scores
-		double[] score_op = new double[scores.length];
+		// double[] score_op = new double[scores.length];
 
 		//the number of terms in the phrase
 		phraseTerms = terms.getTerms();
@@ -435,62 +471,32 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 		
 		final double ngramC = Double.parseDouble(ApplicationSetup.getProperty("proximity.ngram.c","1.0d"));
 		
-		if (dependency.equals("FD")){
-			w_u = Double.parseDouble(ApplicationSetup.getProperty("proximity.w_u","1.0d"));
-			logger.debug("w_t: "+w_t+", w_u: "+w_u+", fnid: "+phraseQTWfnid+", ngramc: "+ngramC+", w_size: "+this.ngramLength);
-		}
-		else if (dependency.equals("SD")){
-			w_o = Double.parseDouble(ApplicationSetup.getProperty("proximity.w_o","1.0d"));
-			logger.debug("w_t: "+w_t+", w_o: "+w_o+", fnid: "+phraseQTWfnid+", ngramc: "+ngramC+", w_size: "+this.ngramLength);
-		}
+		ORDERED = Boolean.parseBoolean(ApplicationSetup.getProperty("proximity.ordered", "false"));
+		UNORDERED = Boolean.parseBoolean(ApplicationSetup.getProperty("proximity.unordered", "true"));
+		w_u = (UNORDERED)?(Double.parseDouble(ApplicationSetup.getProperty("proximity.w_u","1.0d"))):(0d);
+		w_t = Double.parseDouble(ApplicationSetup.getProperty("proximity.w_t","1.0d"));
+		w_o = (ORDERED)?(Double.parseDouble(ApplicationSetup.getProperty("proximity.w_o","1.0d"))):(0d);
+		logger.debug("w_t: "+w_t+", w_u: "+w_u+", w_o: "+w_o+", fnid: "+phraseQTWfnid+", ngramc: "+ngramC+", w_size: "+this.ngramLength);
 		int modifiedCounter = 0;
-		if (dependency.equals("FD"))
-		{
-			for (int i=0; i<phraseLength-1; i++) {
-				for (int j=i+1; j<phraseLength; j++) {
-					term1 = phraseTerms[i];
-					term2 = phraseTerms[j];
-					this.computeFDScore(term1, term2, phraseTermWeights[i], phraseTermWeights[j], scores, score_u, docids, 
+		for (int i=0; i<phraseLength-1; i++) {
+			for (int j=i+1; j<phraseLength; j++) {
+				term1 = phraseTerms[i];
+				term2 = phraseTerms[j];
+				computeProximityScore(term1, term2, phraseTermWeights[i], phraseTermWeights[j], scores, score_u, score_o, docids, 
 							ngramC, ngramLength, this.CACHE_POSTINGS);
-	   			}
-			}
-			for (int k=0; k<docids.length; k++) {
-				if (score_u[k] != 0d)
-					modifiedCounter++;
-				if (combinedModel)
-					scores[k] =  w_t * scores[k] +  w_u * score_u[k] ;
-				else
-					scores[k] = score_u[k];
-			}
-			if (this.CACHE_POSTINGS)
-				postingsCache.clear();
-			logger.debug("Modifered scores for "+modifiedCounter+" documents.");
-	  	}
-		else if (dependency.equals("SD")){
-			for (int i=0; i<phraseLength-1; i++) {
-				for (int j=i+1; j<phraseLength; j++) {
-					term1 = phraseTerms[i];
-					term2 = phraseTerms[j];
-					this.computeFDScore(term1, term2, phraseTermWeights[i], phraseTermWeights[j], scores, score_u, docids, 
-							ngramC, ngramLength, this.CACHE_POSTINGS);
-				}
-			}
-			for (int k=0; k<docids.length; k++) {		
-				if (score_u[k] != 0d)
-					modifiedCounter++;
-				if (combinedModel)
-					scores[k] =  w_t * scores[k] +  w_u * score_u[k] ;
-				else
-					scores[k] = score_u[k];		
-			}
-			if (this.CACHE_POSTINGS)
-				postingsCache.clear();
+   			}
 		}
-		else
-		{
-			logger.debug("WARNING: proximity.dependency.type not set. Set it to either FD or SD");
-			return false;
+		for (int k=0; k<docids.length; k++) {
+			if (score_u[k] != 0d || score_o[k]!=0d)
+				modifiedCounter++;
+			if (combinedModel)
+				scores[k] =  w_t * scores[k] +  w_u * score_u[k] + w_o * score_o[k];
+			else
+				scores[k] = w_u*score_u[k]+w_o * score_o[k];
 		}
+		if (this.CACHE_POSTINGS)
+			postingsCache.clear();
+		logger.debug("Modifered scores for "+modifiedCounter+" documents.");
 		//returning true, assuming that we have modified the scores of documents		
 		// return true;
 		return (modifiedCounter>0);
