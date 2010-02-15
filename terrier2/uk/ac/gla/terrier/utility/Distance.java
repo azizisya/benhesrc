@@ -1,5 +1,9 @@
 package uk.ac.gla.terrier.utility;
 
+import gnu.trove.TIntHashSet;
+import gnu.trove.TIntIntHashMap;
+import gnu.trove.TIntObjectHashMap;
+
 import java.util.Arrays;
 
 import org.apache.log4j.Logger;
@@ -48,6 +52,54 @@ public class Distance{
 			if (windows_for_term1[i] > 0 && windows_for_term2[i] > 0)
 				count++;
 		}
+		return count;
+	}
+	
+	/** Counts number of blocks where two terms occur within a block of windowSize in length, in a document of length documentLengthInTokens
+	 * where the blocks for the terms are as given
+	 * @param blocksOfTerm1 
+	 * @param start1 The start index for the correct blockIds in blocksOfTerm1 
+	 * @param end1 The end for the correct blockIds in blocksOfTerm1 
+	 * @param blocksOfTerm2
+	 * @param start2 The start index for the correct blockIds in blocksOfTerm2
+	 * @param end2 The end index for the correct blockIds in blocksOfTerm2
+	 * @param windowSize
+	 * @param documentLengthInTokens
+	 **/
+	public static int noTimesOrdered(final int[] blocksOfTerm1, int start1, int end1, final int[] blocksOfTerm2, int start2, int end2, final int windowSize, final int documentLengthInTokens){
+		
+		if( blocksOfTerm1 == null){
+			return 0;
+		}
+		
+		if(blocksOfTerm2 == null){
+			return 0;
+		}
+		
+		int numberOfNGrams = documentLengthInTokens< windowSize ? 1 :documentLengthInTokens - windowSize + 1;
+		int count = 0;
+		
+		TIntObjectHashMap<TIntHashSet> windowBlockMap1 = new TIntObjectHashMap<TIntHashSet>();
+		TIntObjectHashMap<TIntHashSet> windowBlockMap2 = new TIntObjectHashMap<TIntHashSet>();
+		windowsForTermsWithPosition(blocksOfTerm1, start1, end1, windowSize, numberOfNGrams, windowBlockMap1);
+		windowsForTermsWithPosition(blocksOfTerm2, start2, end2, windowSize, numberOfNGrams, windowBlockMap2);
+		
+		for(int i=0; i<numberOfNGrams; i++){
+			if (windowBlockMap1.containsKey(i) && windowBlockMap2.containsKey(i)){
+				int[] blocks1 = windowBlockMap1.get(i).toArray();
+				int[] blocks2 = windowBlockMap2.get(i).toArray();
+				Arrays.sort(blocks2);
+				int length2 = blocks2.length;
+				for (int pos : blocks1){
+					if (pos < blocks2[length2-1]){
+						count++;
+						break;
+					}
+				}
+			}
+		}
+		windowBlockMap1.clear(); windowBlockMap1 = null;
+		windowBlockMap2.clear(); windowBlockMap2 = null;
 		return count;
 	}
 	
@@ -174,6 +226,65 @@ public class Distance{
 		return SigmoidFunction.inverseSigmoid((double)minDist, sigmoidPower);
 	}
 	
+	public static int getMinDistOrdered(int pos, final int[] blocksOfTerm, int start, int end, int wSize){
+		/*int minDist = Statistics.sum(blocksOfTerm);
+		for (int i=start; i<end; i++){
+			minDist = Math.min(minDist, Math.abs(blocksOfTerm[i]-pos));
+		}
+		if (minDist<=0d)
+			return 0d;*/
+		
+		int minDist = Math.abs(blocksOfTerm[start]-pos);
+		if (end-start==1){
+			minDist = Math.abs(blocksOfTerm[start]-pos);
+		}
+		else if (end-start == 2)
+			minDist = Math.min(Math.abs(blocksOfTerm[start]-pos), Math.abs(blocksOfTerm[end-1]-pos));
+		
+		// if pos falls outside of the range of blocksOfTerm
+		else if (pos<blocksOfTerm[start])
+			minDist = Math.abs(blocksOfTerm[start]-pos);
+		else if (pos>blocksOfTerm[end-1])
+			minDist = Math.abs(blocksOfTerm[end-1]-pos);
+		else {// perform a binary search
+			// logger.debug("start binary search");
+			int left = start; int right = end;
+			int mid = (start+end-1)/2;
+			while (true){
+				// logger.debug("start="+start+", mid="+mid+", end="+end);
+				// logger.debug(blocksOfTerm[mid]+", "+pos+", "+blocksOfTerm[mid+1]);
+				if (mid==left){
+					minDist = Math.abs(blocksOfTerm[mid+1]-pos);
+					break;
+				}else if (mid==right-1){
+					minDist = Math.abs(blocksOfTerm[mid]-pos);
+					break;
+				}else if (pos>blocksOfTerm[mid] && pos<blocksOfTerm[mid+1]){
+					minDist = Math.abs(blocksOfTerm[mid+1]-pos);
+					break;
+				}
+				else if (pos == blocksOfTerm[mid] || pos == blocksOfTerm[mid+1]){
+					return 0;
+				}
+				else{
+					if (pos<blocksOfTerm[mid]){
+						right = mid+1;
+						mid=(left+mid)/2;
+					}
+					else{
+						left = mid;
+						mid=(mid+right-1)/2;
+					}
+				}
+			}
+		}
+		
+		if ( wSize!=0 && (minDist<=0 || minDist > wSize-1))
+			return -1;
+		
+		return minDist-1;
+	}
+	
 	public static int getMinDist(int pos, final int[] blocksOfTerm, int start, int end, int wSize){
 		/*int minDist = Statistics.sum(blocksOfTerm);
 		for (int i=start; i<end; i++){
@@ -233,7 +344,34 @@ public class Distance{
 		return minDist-1;
 	}
 	
-	public static void windowsForTerms(int[] blocksOfTerm, int start, int end, int windowSize, int numberOfNGrams, int[] windows_for_term)
+	public static void windowsForTermsWithPosition(int[] blocksOfTerm, int start, int end, int windowSize, 
+			int numberOfNGrams, TIntObjectHashMap<TIntHashSet> windowBlockMap)
+	{
+		
+		//for each block
+		for(int i=start; i<end; i++){
+			final int a = blocksOfTerm[i];
+			int j;
+			if( a - windowSize+1 < 0)
+				j = 0;
+			else
+				j = a-windowSize+1;
+			//for each window matching that block
+			for(; j<=a && j< numberOfNGrams; j++){
+				//windows_for_term[j] = 1;
+				if (windowBlockMap.containsKey(j))
+					windowBlockMap.get(j).add(a);
+				else{
+					TIntHashSet set = new TIntHashSet();
+					set.add(a);
+					windowBlockMap.put(j, set);
+				}
+			}
+		}
+	}
+	
+	public static void windowsForTerms(int[] blocksOfTerm, int start, int end, int windowSize, 
+			int numberOfNGrams, int[] windows_for_term)
 	{
 		
 		//for each block
@@ -251,7 +389,9 @@ public class Distance{
 		}
 	}
 	
-	/** number of blocks where */
+	/** 
+	 * @deprecated
+	 * number of blocks where */
 	public static int noTimesSameOrder(final int[] blocksOfTerm1, int start1, int end1, final int[] blocksofTerm2, int start2, int end2, final int windowSize, final int documentLengthInTokens){
 		
 		if( blocksOfTerm1 == null){
