@@ -66,7 +66,8 @@ public class Blog06 {
 	}
 	
 	public static void checkRelDistribution(String qrelsFilename, String outputFilename){
-		String feedPLMapFilename = "/home/ben/tr.ben/Backup/Resources/TREC/Blogs06/blog2doc/docid2feedid.txt.gz";
+		String feedPLMapFilename = ApplicationSetup.TERRIER_ETC+ApplicationSetup.FILE_SEPARATOR+"VLDB"+ApplicationSetup.FILE_SEPARATOR+
+				"docid2feedid.txt.gz";
 		// load docid -> feedid map
 		TIntIntHashMap map = new TIntIntHashMap();
 		map = DataUtility.loadIntIntHashMap(feedPLMapFilename, 0, 1);
@@ -134,7 +135,8 @@ public class Blog06 {
 	    TIntDoubleHashMap map = DataUtility.loadIntDoubleHashMap(feedwFilename, 0, 1);
 	    TIntDoubleHashMap docidScoreMap = new TIntDoubleHashMap();
         // convert feedScore map to docScore map
-        String feedPLMapFilename = "/home/ben/tr.ben/Backup/Resources/TREC/Blogs06/blog2doc/docid2feedid.txt.gz";
+        String feedPLMapFilename = ApplicationSetup.TERRIER_ETC+ApplicationSetup.FILE_SEPARATOR+"VLDB"+ApplicationSetup.FILE_SEPARATOR+
+			"docid2feedid.txt.gz";
         TIntIntHashMap docFeedidMap = DataUtility.loadIntIntHashMap(feedPLMapFilename, 0, 1);
         TIntIntHashMap feedSizeMap = DataUtility.loadIntSizeHashMap(feedPLMapFilename, 1);
         for (int docid : docFeedidMap.keys()){
@@ -188,7 +190,8 @@ public class Blog06 {
 	
 	public static void docid2FeedidInResults(String resultFilename, String outputFilename){
 		try{
-			String feedPLMapFilename = "/home/ben/tr.ben/Backup/Resources/TREC/Blogs06/blog2doc/docid2feedid.txt.gz";
+			String feedPLMapFilename = ApplicationSetup.TERRIER_ETC+ApplicationSetup.FILE_SEPARATOR+"VLDB"+ApplicationSetup.FILE_SEPARATOR+
+				"docid2feedid.txt.gz";
 			// load docid -> feedid map
 			TIntIntHashMap map = new TIntIntHashMap();
 			BufferedReader br = Files.openFileReader(feedPLMapFilename);
@@ -253,9 +256,9 @@ public class Blog06 {
 	}
 	
 	public static void convertfeedPLMapFile(){
-		String filename = "/home/ben/tr.ben/Backup/Resources/TREC/Blogs06/blog2doc/feed2docno.txt.gz";
-		String outputFilename = "/home/ben/tr.ben/Backup/Resources/TREC/Blogs06/blog2doc/docid2feedid.txt.gz";
-		String feedidFilename = "/home/ben/tr.ben/Backup/Resources/TREC/Blogs06/blog2doc/feedidmap.txt.gz";
+		String filename = ApplicationSetup.TERRIER_ETC+ApplicationSetup.FILE_SEPARATOR+"VLDB"+ApplicationSetup.FILE_SEPARATOR+"feed2docno.txt.gz";
+		String outputFilename = ApplicationSetup.TERRIER_ETC+ApplicationSetup.FILE_SEPARATOR+"VLDB"+ApplicationSetup.FILE_SEPARATOR+"docid2feedid.txt.gz";
+		String feedidFilename = ApplicationSetup.TERRIER_ETC+ApplicationSetup.FILE_SEPARATOR+"VLDB"+ApplicationSetup.FILE_SEPARATOR+"feedidmap.txt.gz";
 		String docidxFilename = "/home/ben/tr.ben/indices/Blog06/Stopwords_PorterStemmer_blocks/data.docid";
 		
 		/**
@@ -458,7 +461,7 @@ public class Blog06 {
 		}
 		System.out.println("Done. "+termids.length+" words loaded.");
 		// load feedid to docid map
-		String idmapFilename = "/home/ben/tr.ben/Backup/Resources/TREC/Blogs06/blog2doc/docid2feedid.txt.gz";
+		String idmapFilename = ApplicationSetup.TERRIER_ETC+ApplicationSetup.FILE_SEPARATOR+"VLDB"+ApplicationSetup.FILE_SEPARATOR+"docid2feedid.txt.gz";
 		
 		Index index = Index.createIndex();
 		DirectIndex di = index.getDirectIndex();
@@ -569,7 +572,7 @@ public class Blog06 {
 		}
 		System.out.println("Done. "+feedLMMap.size()+" feed sentiment LMs loaded.");
 		// load feedid to docid map
-		String idmapFilename = "/home/ben/tr.ben/Backup/Resources/TREC/Blogs06/blog2doc/docid2feedid.txt.gz";
+		String idmapFilename = ApplicationSetup.TERRIER_ETC+ApplicationSetup.FILE_SEPARATOR+"VLDB"+ApplicationSetup.FILE_SEPARATOR+"docid2feedid.txt.gz";
 		
 		Index index = Index.createIndex();
 		DirectIndex di = index.getDirectIndex();
@@ -657,7 +660,7 @@ public class Blog06 {
 		}
 		System.out.println("Done. "+termids.length+" words loaded.");
 		// load feedid to docid map
-		String idmapFilename = "/home/ben/tr.ben/Backup/Resources/TREC/Blogs06/blog2doc/docid2feedid.txt.gz";
+		String idmapFilename = ApplicationSetup.TERRIER_ETC+ApplicationSetup.FILE_SEPARATOR+"VLDB"+ApplicationSetup.FILE_SEPARATOR+"docid2feedid.txt.gz";
 		
 		Index index = Index.createIndex();
 		DirectIndex di = index.getDirectIndex();
@@ -787,7 +790,7 @@ public class Blog06 {
 		}
 		System.out.println("Done. "+termids.length+" words loaded.");
 		// load feedid to docid map
-		String idmapFilename = "/home/ben/tr.ben/Backup/Resources/TREC/Blogs06/blog2doc/docid2feedid.txt.gz";
+		String idmapFilename = ApplicationSetup.TERRIER_ETC+ApplicationSetup.FILE_SEPARATOR+"VLDB"+ApplicationSetup.FILE_SEPARATOR+"docid2feedid.txt.gz";
 		
 		Index index = Index.createIndex();
 		DirectIndex di = index.getDirectIndex();
@@ -909,7 +912,7 @@ public class Blog06 {
 		}
 		System.out.println("Done. "+termids.length+" words loaded.");
 		// load feedid to docid map
-		String idmapFilename = "/home/ben/tr.ben/Backup/Resources/TREC/Blogs06/blog2doc/docid2feedid.txt.gz";
+		String idmapFilename = ApplicationSetup.TERRIER_ETC+ApplicationSetup.FILE_SEPARATOR+"VLDB"+ApplicationSetup.FILE_SEPARATOR+"docid2feedid.txt.gz";
 		
 		Index index = Index.createIndex();
 		DirectIndex di = index.getDirectIndex();
