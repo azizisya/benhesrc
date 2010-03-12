@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
 import java.util.TreeMap;
 import java.util.StringTokenizer;
 
@@ -416,7 +417,13 @@ public class TerrierFunction2 implements OneVariableFunction, ManyVariableFuncti
 						StringTokenizer stk = new StringTokenizer(line);
 						stk.nextToken(); // skip map
 						stk.nextToken(); // skip all
-						value = Double.parseDouble(stk.nextToken());
+						try{
+							value = Double.parseDouble(stk.nextToken());
+						}catch(NoSuchElementException e){
+							System.err.println("line: "+line+", measure: "+evalMeasure);
+							e.printStackTrace();
+							System.exit(1);
+						}
 						if (ApplicationSetup.getProperty("minimise","true").equals("true"))
 							value = -value;
 						// looks for the parameter value that gives the worst performance
