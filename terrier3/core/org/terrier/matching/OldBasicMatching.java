@@ -34,6 +34,7 @@ import org.terrier.matching.dsms.DocumentScoreModifier;
 import org.terrier.matching.models.WeightingModel;
 import org.terrier.structures.BitIndexPointer;
 import org.terrier.structures.CollectionStatistics;
+import org.terrier.structures.DocumentIndex;
 import org.terrier.structures.EntryStatistics;
 import org.terrier.structures.Index;
 import org.terrier.structures.IndexUtil;
@@ -112,6 +113,8 @@ public class OldBasicMatching implements Matching {
 	/** The result set.*/
 	protected ResultSet resultSet;
 	
+	protected DocumentIndex docIndex;
+	
 	
 	/**
 	 * Contains the document score modifiers
@@ -141,7 +144,7 @@ public class OldBasicMatching implements Matching {
 		documentModifiers = new ArrayList<DocumentScoreModifier>();
 		this.index = index;
 		this.lexicon = index.getLexicon();
-
+		this.docIndex = index.getDocumentIndex();
 		
 		this.invertedIndex = index.getInvertedIndex();
 		this.collectionStatistics = index.getCollectionStatistics();
@@ -335,13 +338,13 @@ public class OldBasicMatching implements Matching {
 			
 			for (WeightingModel wmodel: termWeightingModels)
 			{
-				wmodel.setCollectionStatistics(collectionStatistics);
+				wmodel.setBackgroundStatistics(collectionStatistics);
 				wmodel.setRequest(queryTerms.getRequest());
 				wmodel.setKeyFrequency(queryTerms.getTermWeight(queryTermStrings[i]));
 				wmodel.setEntryStatistics(entryStats);
 				IndexUtil.configure(index, wmodel);
 				//this requests any pre-calculations to be made
-				wmodel.prepare();
+				// wmodel.prepare();
 			}
 			
 			//the postings are being read from the inverted file.
