@@ -1,6 +1,6 @@
 /*
  * Terrier - Terabyte Retriever 
- * Webpage: http://terrier.org/
+ * Webpage: http://ir.dcs.gla.ac.uk/terrier 
  * Contact: terrier{a.}dcs.gla.ac.uk
  * University of Glasgow - Department of Computing Science
  * http://www.gla.ac.uk/
@@ -15,29 +15,29 @@
  * the License for the specific language governing rights and limitations
  * under the License.
  *
- * The Original Code is Information.java
+ * The Original Code is KL.java.
  *
  * The Original Code is Copyright (C) 2004-2010 the University of Glasgow.
  * All Rights Reserved.
  *
  * Contributor(s):
- *   Craig Macdonald <craigm{a.}dcs.gla.ac.uk> (original contributor)
-  *   Ben He <ben{a.}dcs.gla.ac.uk>
+ *   Ben He <ben{a.}dcs.gla.ac.uk> 
  */
 package org.terrier.matching.models.queryexpansion;
 
 import org.terrier.matching.models.Idf;
 
 /** 
- * This class implements the Kullback-Leibler divergence for
- * query expansion. See G. Amati's PhD Thesis.
- * @author Gianni Amati, Ben He
- * @version $Revision: 1.3 $
+ * This class implements the Dirichlet smoothing for QE.
+ * @author Ben He
+ * @version $Revision: 1.1 $
  */
-public class Information extends QueryExpansionModel {
+public class JM extends QueryExpansionModel {
     /** A default constructor.*/
-    public Information() {
+    public JM() {
 		super();
+		SUPPORT_PARAMETER_FREE_QE = false;
+		this.c = 0.6d;
     }
     
     /**
@@ -45,16 +45,25 @@ public class Information extends QueryExpansionModel {
      * @return the name of the model
      */
     public final String getInfo() {
-		return "Information";
+		return "JMb"+ROCCHIO_BETA;
     }
     /**
      * This method computes the normaliser of parameter-free query expansion.
      * @return The normaliser.
      */
     public final double parameterFreeNormaliser(int maxTermFrequency, int docLength){	
-    	return (maxTermFrequency) * Math.log(numberOfTokens/docLength)/
-			(Math.log(2d)*docLength);
-		//return  maxTermFrequency * idf.log(collectionLength/totalDocumentLength)/ idf.log (totalDocumentLength);
+    	return 1d;
+	}
+	
+    /**
+     * This method computes the normaliser of parameter-free query expansion.
+     * @param maxTermFrequency The maximum of the term frequency of the query terms.
+     * @param collectionLength The number of tokens in the collections.
+     * @param totalDocumentLength The sum of the length of the top-ranked documents.
+     * @return The normaliser.
+     */
+	public final double parameterFreeNormaliser(double maxTermFrequency, double collectionLength, double totalDocumentLength){
+		return 1d;
 	}
     
     /** This method implements the query expansion model.
@@ -64,7 +73,7 @@ public class Information extends QueryExpansionModel {
      *          Kullback-Leibler divergence.
      */
     public final double score(double tf, double documentLength) {
-		return - Idf.log(tf / documentLength );
+       return c*tf/documentLength + (1-c)*termFrequency/numberOfTokens;
     } 
     
     /**
@@ -83,6 +92,6 @@ public class Information extends QueryExpansionModel {
         double documentFrequency,
         double keyFrequency
     ){
-		return - Idf.log(tf / documentLength);
+		return c*tf/documentLength + (1-c)*termFrequency/numberOfTokens;
     }
 }

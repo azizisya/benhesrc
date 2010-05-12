@@ -49,11 +49,8 @@ public class KLCorrect extends QueryExpansionModel {
     public final String getInfo() {
         return "KLCorrect";
     }
-    public final double parameterFreeNormaliser(){
-		return 1d;
-	}
 	
-	public final double parameterFreeNormaliser(double maxTermFrequency, double collectionLength, double totalDocumentLength){
+	public final double parameterFreeNormaliser(int maxTermFrequency, int documentLength){
 		return 1d;
 	}
     
@@ -63,11 +60,11 @@ public class KLCorrect extends QueryExpansionModel {
      *  @return double The query expansion weight using he complete 
      *  Kullback-Leibler divergence.
      */
-    public final double score(double withinDocumentFrequency, double termFrequency) {
-        if (withinDocumentFrequency / this.totalDocumentLength < termFrequency / this.collectionLength)
+    public final double score(double tf, double documentLength) {
+        if (tf / documentLength < termFrequency / numberOfTokens)
             return 0;
-        double f = withinDocumentFrequency / this.totalDocumentLength;
-        double p = termFrequency / this.collectionLength;
+        double f = tf / documentLength;
+        double p = termFrequency / numberOfTokens;
         double D = f * Idf.log(f, p) + f * Idf.log(1 - f, 1 - p);
         return D;
     } 
@@ -82,16 +79,16 @@ public class KLCorrect extends QueryExpansionModel {
 	 * @return double The score returned by the implemented model.
 	 */
 	public final double score(
-        double withinDocumentFrequency, 
-        double termFrequency,
-        double totalDocumentLength, 
-        double collectionLength, 
-        double averageDocumentLength
+			double tf,
+			double documentLength,
+			double termFrequency,
+			double documentFrequency,
+			double keyFrequency
     ){
-        if (withinDocumentFrequency / totalDocumentLength < termFrequency / collectionLength)
+		if (tf / documentLength < termFrequency / numberOfTokens)
             return 0;
-        double f = withinDocumentFrequency / totalDocumentLength;
-        double p = termFrequency / collectionLength;
+        double f = tf / documentLength;
+        double p = termFrequency / numberOfTokens;
         double D = f * Idf.log(f, p) + f * Idf.log(1 - f, 1 - p);
         return D;    
     }

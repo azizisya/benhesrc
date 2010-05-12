@@ -27,6 +27,7 @@
  */
 package org.terrier.matching.models.queryexpansion;
 import org.terrier.matching.models.Idf;
+import org.terrier.matching.models.WeightingModel;
 import org.terrier.utility.ApplicationSetup;
 /**
  * This class should be extended by the classes used
@@ -38,26 +39,7 @@ import org.terrier.utility.ApplicationSetup;
  * @author Gianni Amati, Ben He, Vassilis Plachouras
  * @version $Revision: 1.22 $
  */
-public abstract class QueryExpansionModel {
-	/** The average document length in the collection. */
-    protected double averageDocumentLength;
-    /** The total length of the X top-retrieved documents.
-     *  X is given by system setting.
-     */
-    protected double totalDocumentLength;
-    
-    /** The number of tokens in the collection. */
-    protected double collectionLength;
-    
-    /** The document frequency of a term. */
-    protected double documentFrequency;
-	/** An instance of Idf, in order to compute the logs.*/
-	protected Idf idf;
-	/** The maximum in-collection term frequencty of the terms in the pseudo relevance set.*/
-	protected double maxTermFrequency;
-	/** The number of documents in the collection. */
-	protected long numberOfDocuments;
-	/** The number of top-ranked documents in the pseudo relevance set. */	
+public abstract class QueryExpansionModel extends WeightingModel{
 	protected double EXPANSION_DOCUMENTS = 
 		Integer.parseInt(ApplicationSetup.getProperty("expansion.documents", "3"));
 	/** The number of the most weighted terms from the pseudo relevance set 
@@ -66,11 +48,16 @@ public abstract class QueryExpansionModel {
 	protected double EXPANSION_TERMS = 
 		Integer.parseInt(ApplicationSetup.getProperty("expansion.terms", "10"));
 	
+	/** Rocchio's beta for query expansion. Its default value is 1.*/
+	public double ROCCHIO_ALPHA;
+	
 	/** Rocchio's beta for query expansion. Its default value is 0.4.*/
 	public double ROCCHIO_BETA;
 	
 	/** Boolean variable indicates whether to apply the parameter free query expansion. */
 	public boolean PARAMETER_FREE;
+	
+	public boolean SUPPORT_PARAMETER_FREE_QE = false;
 	
 	/**
 	 * Initialises the Rocchio's beta for query expansion.
@@ -78,75 +65,100 @@ public abstract class QueryExpansionModel {
 	public void initialise() {
 		/* Accept both rocchio.beta and rocchio_beta as property name. rocchio_beta will deprecated in due course. */
 		ROCCHIO_BETA = Double.parseDouble(ApplicationSetup.getProperty("rocchio.beta", ApplicationSetup.getProperty("rocchio_beta", "0.4d")));
+		ROCCHIO_ALPHA = Double.parseDouble(ApplicationSetup.getProperty("rocchio.alpha", ApplicationSetup.getProperty("rocchio_alpha", "1d")));
 		PARAMETER_FREE = Boolean.parseBoolean(ApplicationSetup.getProperty("parameter.free.expansion", "true"));
-	}
-
-	/**
-	 * @param numberOfDocuments the numberOfDocuments to set
-	 */
-	public void setNumberOfDocuments(long numberOfDocuments) {
-		this.numberOfDocuments = numberOfDocuments;
 	}
 	/**
 	 *  A default constructor for the class that initialises the idf attribute.
 	 */
 	public QueryExpansionModel() {
-		idf = new Idf();
+		super();
+		i = new Idf();
 		this.initialise();
 	}
+	
+	/** Obtain the weighting model to use.
+	 *  If Name does not contain ".", then <tt>
+	 *  NAMESPACE_QEMODEL will be prefixed to it before loading.
+	 *  @param Name the name of the weighting model to load.
+	 */
+	public static QueryExpansionModel getQueryExpansionModel(String Name)
+	{
+		QueryExpansionModel rtr = null;
+		if (Name.indexOf(".") < 0 )
+			Name = "org.terrier.matching.models.queryexpansion." +Name;
+		if (rtr == null)
+		{
+			try
+			{
+				if (Name.indexOf("(") > 0){
+					String params = Name.substring( 
+						Name.indexOf("(")+1, Name.indexOf(")"));
+					String[] parameters = params.split("\\s*,\\s*");
+					
+					rtr = (QueryExpansionModel) Class.forName(
+									Name.substring(0,Name.indexOf("(")))
+							.getConstructor(
+									new Class[]{String[].class})
+							.newInstance(
+									new Object[]{parameters});
+				}else{						
+					rtr = (QueryExpansionModel) Class.forName(Name).newInstance();
+				}
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();
+				return null;
+			}
+		}
+		return rtr;
+	}
+	
+	/** Obtain the query expansion model to use.
+	 *  If Name does not contain ".", then <tt>
+	 *  NAMESPACE_QEMODEL will be prefixed to it before loading.
+	 *  @param Name the name of the weighting model to load.
+	 */
+	public static QueryExpansionModel getModel(String Name)
+	{
+		QueryExpansionModel rtr = null;
+		if (Name.indexOf(".") < 0 )
+			Name = "org.terrier.matching.models.queryexpansion." +Name;
+		if (rtr == null)
+		{
+			try
+			{
+				if (Name.indexOf("(") > 0){
+					String params = Name.substring( 
+						Name.indexOf("(")+1, Name.indexOf(")"));
+					String[] parameters = params.split("\\s*,\\s*");
+					
+					rtr = (QueryExpansionModel) Class.forName(
+									Name.substring(0,Name.indexOf("(")))
+							.getConstructor(
+									new Class[]{String[].class})
+							.newInstance(
+									new Object[]{parameters});
+				}else{						
+					rtr = (QueryExpansionModel) Class.forName(Name).newInstance();
+				}
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();
+				return null;
+			}
+		}
+		return rtr;
+	}
+	
     /**
      * Returns the name of the model.
      * Creation date: (19/06/2003 12:09:55)
      * @return java.lang.String
      */
     public abstract String getInfo();
-    
-    /**
-     * Set the average document length.
-     * @param averageDocumentLength double The average document length.
-     */
-    public void setAverageDocumentLength(double averageDocumentLength){
-        this.averageDocumentLength = averageDocumentLength;
-    }
-    
-    /**
-     * Set the collection length.
-     * @param collectionLength double The number of tokens in the collection.
-     */
-    public void setCollectionLength(double collectionLength){
-        this.collectionLength = collectionLength;
-    }
-    
-    /**
-     * Set the document frequency.
-     * @param documentFrequency double The document frequency of a term.
-     */
-    public void setDocumentFrequency(double documentFrequency){
-        this.documentFrequency = documentFrequency;
-    }
-    
-    /**
-     * Set the total document length.
-     * @param totalDocumentLength double The total document length.
-     */
-    public void setTotalDocumentLength(double totalDocumentLength){
-        this.totalDocumentLength = totalDocumentLength;
-    }
-    
-    /** 
-     * This method sets the maximum of the term frequency values of query terms.
-     * @param maxTermFrequency
-     */
-    public void setMaxTermFrequency(double maxTermFrequency){
-    	this.maxTermFrequency = maxTermFrequency;
-    }
-    
-    /**
-     * This method provides the contract for computing the normaliser of
-     * parameter-free query expansion.
-     * @return The normaliser.
-     */
-    public abstract double parameterFreeNormaliser();
     
     /**
      * This method provides the contract for computing the normaliser of
@@ -156,33 +168,5 @@ public abstract class QueryExpansionModel {
      * @param totalDocumentLength The sum of the length of the top-ranked documents.
      * @return The normaliser.
      */
-    public abstract double parameterFreeNormaliser(double maxTermFrequency, double collectionLength, double totalDocumentLength);
-    
-	/**
-	 * This method provides the contract for implementing query expansion models.
-	 * @param withinDocumentFrequency double The term 
-	 *        frequency in the X top-retrieved documents.
-     * @param termFrequency double The term frequency in the collection.
-	 * @return the score assigned to a document with the parameters, 
-	 *         and other preset parameters
-	 */
-	public abstract double score(double withinDocumentFrequency, double termFrequency);
-	
-	/**
-	 * This method provides the contract for implementing query expansion models.
-     * For some models, we have to set the beta and the documentFrequency of a term.
-	 * @param withinDocumentFrequency double The term frequency in the X top-retrieved documents.
-     * @param termFrequency double The term frequency in the collection.
-     * @param totalDocumentLength double The sum of length of the X top-retrieved documents.
-     * @param collectionLength double The number of tokens in the whole collection.
-     * @param averageDocumentLength double The average document length in the collection.
-	 * @return double The score returned by the implemented model.
-	 */
-	public abstract double score(
-        double withinDocumentFrequency, 
-        double termFrequency,
-        double totalDocumentLength, 
-        double collectionLength, 
-        double averageDocumentLength 
-    );   
+    public abstract double parameterFreeNormaliser(int maxTermFrequency, int documentLength);
 }

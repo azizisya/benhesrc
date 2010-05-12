@@ -38,6 +38,7 @@ public class Bo2 extends QueryExpansionModel {
 	/** A default constructor.*/
 	public Bo2() {
 		super();
+		SUPPORT_PARAMETER_FREE_QE = true;
 	}
 	/**
 	 * Returns the name of the model.
@@ -53,20 +54,9 @@ public class Bo2 extends QueryExpansionModel {
      * This method computes the normaliser of parameter-free query expansion.
      * @return The normaliser.
      */
-	public final double parameterFreeNormaliser(){
-		double f =  (maxTermFrequency) * totalDocumentLength/collectionLength;
-		return  ((maxTermFrequency)*  Idf.log((1d +f)/ f) +  Idf.log(1d +f));
-	}
-	/**
-     * This method computes the normaliser of parameter-free query expansion.
-     * @param maxTermFrequency The maximum of the term frequency of the query terms.
-     * @param collectionLength The number of tokens in the collections.
-     * @param totalDocumentLength The sum of the length of the top-ranked documents.
-     * @return The normaliser.
-     */
-	public final double parameterFreeNormaliser(double maxTermFrequency, double collectionLength, double totalDocumentLength){
-		double f =  (maxTermFrequency) * totalDocumentLength/collectionLength;
-		return  ((maxTermFrequency)*  Idf.log((1d +f)/ f) +  Idf.log(1d +f));
+	public final double parameterFreeNormaliser(int maxTermFrequency, int docLength){
+		double f =  ((double)maxTermFrequency) * docLength/this.numberOfTokens;
+		return  (((double)maxTermFrequency)*  Idf.log((1d +f)/ f) +  Idf.log(1d +f));
 	}
 	/** This method implements the query expansion model.
 	 *  @param withinDocumentFrequency double The term frequency 
@@ -75,14 +65,12 @@ public class Bo2 extends QueryExpansionModel {
 	 *  @return double The query expansion weight using the Bose-Einstein statistics
 	 *  where the mean is given by the Bernoulli process.
 	 */
-	public final double score(
-		double withinDocumentFrequency,
-		double termFrequency) {
+	public final double score(double tf, double docLength) {
 		double f =
-			withinDocumentFrequency
-				* totalDocumentLength
-				/ collectionLength;
-		return withinDocumentFrequency * Idf.log((1d + f) / f)
+			tf
+				* docLength
+				/ numberOfTokens;
+		return tf * Idf.log((1d + f) / f)
 			+ Idf.log(1d + f);
 	}
 	/**
@@ -98,16 +86,16 @@ public class Bo2 extends QueryExpansionModel {
 	 * @return double The score returned by the implemented model.
 	 */
 	public final double score(
-		double withinDocumentFrequency,
-		double termFrequency,
-		double totalDocumentLength,
-		double collectionLength,
-		double averageDocumentLength) {
+			double tf,
+			double docLength,
+			double n_t,
+			double F_t,
+			double keyFrequency) {
 		double f =
-			withinDocumentFrequency
-				* totalDocumentLength
-				/ collectionLength;
-		return withinDocumentFrequency * Idf.log((1d + f) / f)
+			tf
+				* docLength
+				/ numberOfTokens;
+		return tf * Idf.log((1d + f) / f)
 			+ Idf.log(1d + f);
 	}
 }
