@@ -243,8 +243,20 @@ public class PorterStemmer extends StemmerTermPipeline
 	protected final void step1()
 	{  if (b[k] == 's')
 	   {  if (ends("sses")) k -= 2; else
-	      if (ends("ies")) setto("i"); else
-	      if (b[k-1] != 's') k--;
+		   /**if (b[k-1] != 's') k--;
+		       * 
+		       * 2010/05/06, Ben: restore to Terrier2 that does not
+		       * stem for terms with less than or equal to three characters.
+		       * */
+	      if (ends("ies") && k>2) setto("i"); else
+	      /**if (b[k-1] != 's') k--;
+	       * 
+	       * 2010/05/06, Ben: restore to Terrier2 that does not
+	       * stem for terms with less than or equal to three characters.
+	       * This change aims to keep words like "djs" in its original form.
+	       * 
+	       * */
+	      if (b[k-1] != 's' && k>2) k--;
 	   }
 	   if (ends("eed")) { if (m() > 0) k--; } else
 	   if ((ends("ed") || ends("ing")) && vowelinstem())
