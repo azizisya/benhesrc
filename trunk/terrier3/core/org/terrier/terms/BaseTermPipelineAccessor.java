@@ -46,6 +46,12 @@ implements TermPipeline, TermPipelineAccessor
 	  * the result of the TermPipeline run for that term. */
 	protected String pipelineOutput = null;
 	
+	public static BaseTermPipelineAccessor getDefaultPipelineAccessor(){
+		String[] pipes = ApplicationSetup.getProperty(
+				"termpipelines", "Stopwords,PorterStemmer").trim()
+				.split("\\s*,\\s*");
+		return new BaseTermPipelineAccessor(pipes);
+	}
 	
 	/** Construct a term pipeline using the specified class names */
 	public BaseTermPipelineAccessor(String... pipes)
