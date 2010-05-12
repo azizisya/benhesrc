@@ -42,6 +42,7 @@ import org.terrier.structures.EntryStatistics;
 /** Base class for weighting term occurrences in feedback documents. 
  * @since 3.0
  * @author Craig Macdonald
+ * @deprecated
  */
 public abstract class ExpansionTerms
 {

@@ -730,9 +730,9 @@ public class Manager
 			{
 				String ControlName = PostFilters_Controls[i][j];
 				String value = (String)controls.get(ControlName);
-				if (logger.isDebugEnabled()){
-					logger.debug(ControlName+ "("+PostFilter_Name+") => "+value);
-				}
+				//if (logger.isDebugEnabled()){
+					//logger.debug(ControlName+ "("+PostFilter_Name+") => "+value);
+				//}
 				if (value == null)
 					continue;
 				value = value.toLowerCase();

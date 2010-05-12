@@ -57,6 +57,7 @@ import org.terrier.utility.Rounding;
  * 	Giambattista Amati: Information Theoretic Approach to Information Extraction. FQAS 2006: 519-529 <a href="http://dx.doi.org/10.1007/11766254_44">DOI 10.1007/11766254_44</a></li></ul>
  * @author Gianni Amati, Ben He, Vassilis Plachouras, Craig Macdonald
  * @version $Revision: 1.39 $
+ * @deprecated
  */
 public class DFRBagExpansionTerms extends ExpansionTerms {
 	/** The logger used */
@@ -251,10 +252,13 @@ public class DFRBagExpansionTerms extends ExpansionTerms {
 	 */
 	public void assignWeights(QueryExpansionModel QEModel){
 		// Set required statistics to the query expansion model
-		QEModel.setTotalDocumentLength(this.totalDocumentLength);
+		QEModel.setBackgroundStatistics(new CollectionStatistics(
+				this.numberOfDocuments, 0, this.numberOfTokens, 0, new long[0]));
+		
+		/*QEModel.setTotalDocumentLength(this.totalDocumentLength);
 		QEModel.setCollectionLength(this.numberOfTokens);
 		QEModel.setAverageDocumentLength(this.averageDocumentLength);
-		QEModel.setNumberOfDocuments(this.numberOfDocuments);
+		QEModel.setNumberOfDocuments(this.numberOfDocuments);*/
 		
 		// weight the terms
 		int posMaxWeight = 0;
@@ -294,8 +298,8 @@ public class DFRBagExpansionTerms extends ExpansionTerms {
 		// get the normaliser
 		normaliser = allTerms[posMaxWeight].getWeightExpansion();
 		if (QEModel.PARAMETER_FREE){
-			QEModel.setMaxTermFrequency(allTerms[posMaxWeight].getWithinDocumentFrequency());
-			normaliser = QEModel.parameterFreeNormaliser();
+			// QEModel.setMaxTermFrequency(allTerms[posMaxWeight].getWithinDocumentFrequency());
+			normaliser = QEModel.parameterFreeNormaliser((int)allTerms[posMaxWeight].getWithinDocumentFrequency(), (int)totalDocumentLength);
 			if(logger.isInfoEnabled()){
 				logger.info("parameter free query expansion.");
 			}
@@ -332,12 +336,13 @@ public class DFRBagExpansionTerms extends ExpansionTerms {
 			//double Nt = 0;
 			Map.Entry<String, LexiconEntry> lee = lexicon.getLexiconEntry(termId);
 			TF = lee.getValue().getFrequency();
+			double Nt = lee.getValue().getDocumentFrequency();
 			//Nt = lee.getValue().getDocumentFrequency();
 			score = model.score(o.getWithinDocumentFrequency(),
-					TF,
 					this.totalDocumentLength,
-					this.numberOfTokens,
-					this.averageDocumentLength
+					Nt,
+					TF,
+					1d
 					);
 		}
 		return score;
