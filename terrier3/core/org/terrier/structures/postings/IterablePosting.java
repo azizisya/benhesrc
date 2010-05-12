@@ -27,6 +27,8 @@ package org.terrier.structures.postings;
 
 import java.io.Closeable;
 import java.io.IOException;
+
+import org.terrier.utility.ApplicationSetup;
 /** An interface that allows a list of postings to be iterated over 
  * @since 3.0
  */

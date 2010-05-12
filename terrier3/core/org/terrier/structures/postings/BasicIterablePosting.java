@@ -31,6 +31,7 @@ import java.io.IOException;
 
 import org.terrier.compression.BitIn;
 import org.terrier.structures.DocumentIndex;
+import org.terrier.utility.ApplicationSetup;
 
 /** Basic inverted and direct index format: [gamma(first docid +1) unary (frequency)], [gamma(delta docid) unary(frequency)]
  * @since 3.0 
@@ -41,8 +42,21 @@ public class BasicIterablePosting extends BasicPostingImpl implements IterablePo
 	protected BitIn bitFileReader;
 	protected DocumentIndex doi;
 	
+	public final int CACHE_SIZE = Integer.parseInt(ApplicationSetup.getProperty("posting.cache.size", "100000"));
+	
+	protected int[] idCache;
+	
+	protected int[] tfCache;
+	
+	protected int cacheIndex = 0;
+	
+	protected int exactCacheSize = 0;
+	
 	/** Create a new posting iterator */
-	protected BasicIterablePosting(){}
+	protected BasicIterablePosting(){
+		idCache = new int[CACHE_SIZE];
+		tfCache = new int[CACHE_SIZE];
+	}
 	
 	/** Create a new posting iterator
 	 * @param _bitFileReader BitIn to read the postings from
@@ -54,14 +68,39 @@ public class BasicIterablePosting extends BasicPostingImpl implements IterablePo
 		bitFileReader = _bitFileReader;
 		numEntries = _numEntries;
 		doi = _doi;
+		idCache = new int[CACHE_SIZE];
+		tfCache = new int[CACHE_SIZE];
+	}
+	
+	protected void loadToCache() throws IOException{
+		this.cacheIndex = 0;
+		int localNumEntries = numEntries+1;
+		this.exactCacheSize = 0;
+		for (int i=0; i<CACHE_SIZE; i++){
+			if (localNumEntries-- <= 0)
+				break;
+			idCache[i] = bitFileReader.readGamma() + id;
+			tfCache[i] = bitFileReader.readUnary();
+			id = idCache[i];
+			this.exactCacheSize++;
+		}
 	}
 
 	/** {@inheritDoc} */
 	public int next() throws IOException {
 		if (numEntries-- <= 0)
 			return EOL;
+		
+		if (exactCacheSize == 0 || cacheIndex == exactCacheSize)
+			loadToCache();
+		
+		id = idCache[cacheIndex];
+		tf = tfCache[cacheIndex];
+		cacheIndex++;
+		/**
 		id = bitFileReader.readGamma() + id;
 		tf = bitFileReader.readUnary();
+		*/
 		return id;
 	}
 	
