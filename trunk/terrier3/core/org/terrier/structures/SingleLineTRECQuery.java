@@ -26,6 +26,8 @@
  */
 package org.terrier.structures;
 
+import gnu.trove.TObjectDoubleHashMap;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -139,6 +141,48 @@ public class SingleLineTRECQuery extends TRECQuery
 		}
 		logger.info("Extracted "+ vecStringQueries.size() + " queries");
 		return gotSome;
+	}
+	
+	/**
+	 * Get query terms' string from a one line query with weights, which are removed after the process.
+	 * @param queryString
+	 * @return
+	 */
+	public static String stripWeights(String queryString){
+		StringBuilder buf = new StringBuilder();
+		String[] tokens = queryString.replaceAll("\\^", " ").split(" ");
+		if (tokens.length % 2 == 0){
+			// no query id
+			for (int i=0; i<tokens.length; i+=2)
+				buf.append(tokens[i]+" ");
+		}else{
+			// has query id
+			for (int i=1; i<tokens.length; i+=2)
+				buf.append(tokens[i]+" ");
+		}
+		return buf.toString().trim();
+	}
+	
+	/**
+	 * Parse a one line query with weights and return a mapping from query term strings to their weights.
+	 * @param query
+	 * @return
+	 */
+	public static TObjectDoubleHashMap<String> parseQueryStringWithWeights(String query){
+		TObjectDoubleHashMap<String> map = new TObjectDoubleHashMap<String>();
+		StringBuilder buf = new StringBuilder();
+		String[] tokens = query.replaceAll("\\^", " ").split(" ");
+		// System.err.println("query: "+query);
+		if (tokens.length % 2 == 0){
+			// no query id
+			for (int i=0; i<tokens.length; i+=2)
+				map.adjustOrPutValue(tokens[i], Double.parseDouble(tokens[i+1]), Double.parseDouble(tokens[i+1]));
+		}else{
+			// has query id
+			for (int i=1; i<tokens.length; i+=2)
+				map.adjustOrPutValue(tokens[i], Double.parseDouble(tokens[i+1]), Double.parseDouble(tokens[i+1]));
+		}
+		return map;
 	}
 	
 	static int minOver0(final int[] a)
