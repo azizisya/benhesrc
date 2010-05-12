@@ -49,13 +49,10 @@ public class KLComplete extends QueryExpansionModel {
 		return "KLComplete";
 	}
 	
-	public final double parameterFreeNormaliser(){
+	public final double parameterFreeNormaliser(int maxTermFrequency, int docLength){
 		return 1d;
 	}
 	
-	public final double parameterFreeNormaliser(double maxTermFrequency, double collectionLength, double totalDocumentLength){
-		return 1d;
-	}
 	/** This method implements the complete Kullback-Leibler divergence for
 	 *  query expansion. See the equation after (8.12) for query expansion,
 	 *  page 149.
@@ -65,24 +62,24 @@ public class KLComplete extends QueryExpansionModel {
 	 *  Kullback-Leibler divergence.
 	 */
 	public final double score(
-		double withinDocumentFrequency,
-		double termFrequency) {
-		if (withinDocumentFrequency / this.totalDocumentLength
-			< termFrequency / this.collectionLength)
+		double tf,
+		double documentLength) {
+		if (tf / documentLength
+			< termFrequency / numberOfTokens)
 			return 0;
-		double f = withinDocumentFrequency / this.totalDocumentLength;
-		double p = termFrequency / this.collectionLength;
+		double f = tf / documentLength;
+		double p = termFrequency / numberOfTokens;
 		double D = f * Idf.log(f, p) + f * Idf.log(1 - f, 1 - p);
-		return this.totalDocumentLength * D
+		return documentLength * D
 		//D(withinDocumentFrequency / this.totalDocumentLength, termFrequency / this.collectionLength)
 		+1
 			/ (2d)
 			* (Idf
 				.log(
-					withinDocumentFrequency
+					tf
 						* (1d
-							- withinDocumentFrequency
-								/ this.totalDocumentLength))
+							- tf
+								/ documentLength))
 				+ Idf.log(2 * Math.PI));
 	}
 	/**
@@ -96,27 +93,27 @@ public class KLComplete extends QueryExpansionModel {
 	 * @return double The score returned by the implemented model.
 	 */
 	public final double score(
-		double withinDocumentFrequency,
-		double termFrequency,
-		double totalDocumentLength,
-		double collectionLength,
-		double averageDocumentLength) {
-		if (withinDocumentFrequency / totalDocumentLength
-			< termFrequency / collectionLength)
-			return 0;
-		double f = withinDocumentFrequency / totalDocumentLength;
-		double p = termFrequency / collectionLength;
-		double D = f * Idf.log(f, p) + f * Idf.log(1 - f, 1 - p);
-		return totalDocumentLength * D
-		//D(withinDocumentFrequency / totalDocumentLength, termFrequency / collectionLength)
-		+1
-			/ (2d)
-			* (Idf
-				.log(
-					withinDocumentFrequency
-						* (1d
-							- withinDocumentFrequency
-								/ totalDocumentLength))
-				+ Idf.log(2 * Math.PI));
+			double tf,
+			double documentLength,
+			double termFrequency,
+			double documentFrequency,
+			double keyFrequency) {
+		if (tf / documentLength
+				< termFrequency / numberOfTokens)
+				return 0;
+			double f = tf / documentLength;
+			double p = termFrequency / numberOfTokens;
+			double D = f * Idf.log(f, p) + f * Idf.log(1 - f, 1 - p);
+			return documentLength * D
+			//D(withinDocumentFrequency / this.totalDocumentLength, termFrequency / this.collectionLength)
+			+1
+				/ (2d)
+				* (Idf
+					.log(
+						tf
+							* (1d
+								- tf
+									/ documentLength))
+					+ Idf.log(2 * Math.PI));
 	}
 }

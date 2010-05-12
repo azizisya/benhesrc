@@ -35,9 +35,12 @@ import org.terrier.matching.models.Idf;
  * @version $Revision: 1.21 $
  */
 public class Bo1 extends QueryExpansionModel {
+	
+	
 	/** A default constructor.*/
 	public Bo1() {
 		super();
+		SUPPORT_PARAMETER_FREE_QE = true;
 	}
 	/**
 	 * Returns the name of the model.
@@ -53,26 +56,13 @@ public class Bo1 extends QueryExpansionModel {
      * This method computes the normaliser of parameter-free query expansion.
      * @return The normaliser.
      */
-	public final double parameterFreeNormaliser(){
+	public final double parameterFreeNormaliser(int maxTermFrequency, int docLength){
 		double numberOfDocuments =
-			collectionLength / averageDocumentLength;
-		double f = maxTermFrequency/numberOfDocuments; 
-		return (maxTermFrequency* Math.log( (1d +f)/ f) + Math.log(1d +f))/ Math.log( 2d);
+			this.numberOfTokens / averageDocumentLength;
+		double f = (double)maxTermFrequency/numberOfDocuments; 
+		return ((double)maxTermFrequency* Math.log( (1d +f)/ f) + Math.log(1d +f))/ Math.log( 2d);
 	}
 	
-	/**
-     * This method computes the normaliser of parameter-free query expansion.
-     * @param maxTermFrequency The maximum of the term frequency of the query terms.
-     * @param collectionLength The number of tokens in the collections.
-     * @param totalDocumentLength The sum of the length of the top-ranked documents.
-     * @return The normaliser.
-     */
-	public final double parameterFreeNormaliser(double maxTermFrequency, double collectionLength, double totalDocumentLength){
-		double numberOfDocuments =
-			collectionLength / averageDocumentLength;
-		double f = maxTermFrequency/numberOfDocuments; 
-		return (maxTermFrequency* Math.log( (1d +f)/ f) + Math.log(1d +f))/ Math.log( 2d);
-	}
 	/** This method implements the query expansion model.
 	 *  @param withinDocumentFrequency double The term frequency 
 	 *         in the X top-retrieved documents.
@@ -81,12 +71,12 @@ public class Bo1 extends QueryExpansionModel {
 	 *  the Poisson model.
 	 */
 	public final double score(
-		double withinDocumentFrequency,
-		double termFrequency) {
+		double tf,
+		double docLength) {
 		//double numberOfDocuments =
 			//collectionLength / averageDocumentLength;
 		double f = termFrequency / numberOfDocuments;
-		return withinDocumentFrequency * Idf.log((1d + f) / f)
+		return tf * Idf.log((1d + f) / f)
 			+ Idf.log(1d + f);
 	}
 	/**
@@ -102,15 +92,15 @@ public class Bo1 extends QueryExpansionModel {
 	 * @return double The score returned by the implemented model.
 	 */
 	public final double score(
-		double withinDocumentFrequency,
-		double termFrequency,
-		double totalDocumentLength,
-		double collectionLength,
-		double averageDocumentLength) {
+			double tf,
+			double documentLength,
+			double termFrequency,
+			double documentFrequency,
+			double keyFrequency) {
 		//double numberOfDocuments =
 			//collectionLength / averageDocumentLength;
 		double f = termFrequency / numberOfDocuments;
-		return withinDocumentFrequency * Idf.log((1d + f) / f)
+		return tf * Idf.log((1d + f) / f)
 			+ Idf.log(1d + f);
 	}
 }

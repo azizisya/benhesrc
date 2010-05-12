@@ -48,11 +48,8 @@ public class CSCorrect extends QueryExpansionModel {
     public final String getInfo() {
         return "CSCorrect";
     }
-    public final double parameterFreeNormaliser(){
-		return 1d;
-	}
 	
-	public final double parameterFreeNormaliser(double maxTermFrequency, double collectionLength, double totalDocumentLength){
+	public final double parameterFreeNormaliser(int maxTermFrequency, int docLength){
 		return 1d;
 	}
     
@@ -62,14 +59,14 @@ public class CSCorrect extends QueryExpansionModel {
      *  @return double The query expansion weight using he complete 
      *  Kullback-Leibler divergence.
      */
-    public final double score(double withinDocumentFrequency, double termFrequency) {
+    public final double score(double tf, double documentLength) {
         /**	    return 1- (Math.pow(2d, - this.totalDocumentLength*D(withinDocumentFrequency/this.totalDocumentLength,this.termFrequency/this.collectionLength))/Math.sqrt(2*Math.PI*this.totalDocumentLength*(1d- withinDocumentFrequency/this.totalDocumentLength))); */
-        return this.totalDocumentLength * 
+        return documentLength * 
                 //Poisson(withinDocumentFrequency / this.totalDocumentLength, termFrequency / this.collectionLength)
-                (withinDocumentFrequency / this.totalDocumentLength) * 
-                Idf.log(withinDocumentFrequency / this.totalDocumentLength, termFrequency / this.collectionLength)
-                + 0.5d * Idf.log(2 * Math.PI * this.totalDocumentLength * 
-                        (1d - withinDocumentFrequency / this.totalDocumentLength));
+                (tf / documentLength) * 
+                Idf.log(tf / documentLength, termFrequency / numberOfTokens)
+                + 0.5d * Idf.log(2 * Math.PI * documentLength * 
+                        (1d - tf / documentLength));
     } 
     
     /**
@@ -82,18 +79,18 @@ public class CSCorrect extends QueryExpansionModel {
 	 * @return double The score returned by the implemented model.
 	 */
 	public final double score(
-        double withinDocumentFrequency, 
-        double termFrequency,
-        double totalDocumentLength, 
-        double collectionLength, 
-        double averageDocumentLength
+        double tf, 
+        double documentLength,
+        double termFrequency, 
+        double documentFrequency, 
+        double keyFrequency
     ){
         /**	    return 1- (Math.pow(2d, - this.totalDocumentLength*D(withinDocumentFrequency/this.totalDocumentLength,this.termFrequency/this.collectionLength))/Math.sqrt(2*Math.PI*this.totalDocumentLength*(1d- withinDocumentFrequency/this.totalDocumentLength))); */
-        return totalDocumentLength * 
+        return documentLength * 
                 //Poisson(withinDocumentFrequency / this.totalDocumentLength, termFrequency / this.collectionLength)
-                (withinDocumentFrequency / totalDocumentLength) * 
-                Idf.log(withinDocumentFrequency / totalDocumentLength, termFrequency / collectionLength)
-                + 0.5d * Idf.log(2 * Math.PI * totalDocumentLength * 
-                        (1d - withinDocumentFrequency / totalDocumentLength));
+                (tf / documentLength) * 
+                Idf.log(tf / documentLength, termFrequency / numberOfTokens)
+                + 0.5d * Idf.log(2 * Math.PI * documentLength * 
+                        (1d - tf / documentLength));
     }
 }
