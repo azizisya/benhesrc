@@ -77,11 +77,6 @@ public class PerFieldNormWeightingModel extends WeightingModel {
 		this.basicModel = Class.forName(parameters[0]).asSubclass(BasicModel.class).newInstance();
 		this.normClass = Class.forName(parameters[1]).asSubclass(Normalisation.class);
 	}
-	
-	@Override
-	public void prepare() {
-		super.prepare();
-	}
 
 	@Override
 	public double score(Posting _p) {
@@ -98,9 +93,9 @@ public class PerFieldNormWeightingModel extends WeightingModel {
 	}
 
 	@Override
-	public void setCollectionStatistics(CollectionStatistics _cs) 
+	public void setBackgroundStatistics(CollectionStatistics _cs) 
 	{
-		super.setCollectionStatistics(_cs);
+		super.setBackgroundStatistics(_cs);
 		fieldCount = _cs.getNumberOfFields();
 		if (fieldCount < 1)
 			throw new IllegalStateException("Fields must be 1 or more");

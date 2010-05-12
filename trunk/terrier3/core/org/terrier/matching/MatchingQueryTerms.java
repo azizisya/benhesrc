@@ -350,6 +350,17 @@ public class MatchingQueryTerms implements Serializable,Cloneable
 			properties[i].weight /= maxWeight;
 	}
 	
+	public void normalizeLMQueryModel(){
+		double sum = 0d;
+		QueryTermProperties[] properties = termProperties.values().toArray(
+				new QueryTermProperties[termProperties.size()]);
+		for (int i = 0; i < properties.length; i++)
+			sum += properties[i].weight;
+		// normalise
+		for (int i = 0; i < termProperties.size(); i++)
+			properties[i].weight /= sum;
+	}
+	
 	/**
 	 * This method resets query term statistics to allow for a single instance
 	 * of MatchingQueryTerms to be reused for matching against different indices.

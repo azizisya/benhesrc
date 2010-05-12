@@ -33,6 +33,7 @@ import org.terrier.querying.Request;
 import org.terrier.structures.CollectionStatistics;
 import org.terrier.structures.EntryStatistics;
 import org.terrier.structures.postings.Posting;
+
 /**
  * This class should be extended by the classes used
  * for weighting terms and documents.
@@ -41,6 +42,11 @@ import org.terrier.structures.postings.Posting;
  */
 public abstract class WeightingModel implements Model, Serializable,Cloneable {
 	private static final long serialVersionUID = 1L;
+	
+	public boolean ACCEPT_NEGATIVE_SCORE = false;
+	
+	public boolean ACCEPT_UNSEEN = false;
+	
 	/** The class used for computing the idf values.*/
 	protected Idf i;
 	/** The average length of documents in the collection.*/
@@ -70,6 +76,44 @@ public abstract class WeightingModel implements Model, Serializable,Cloneable {
 	public WeightingModel() {
 		i = new Idf();
 	}
+	
+	/** Obtain the weighting model to use.
+	 *  If Name does not contain ".", then <tt>
+	 *  NAMESPACE_QEMODEL will be prefixed to it before loading.
+	 *  @param Name the name of the weighting model to load.
+	 */
+	public static WeightingModel getWeightingModel(String Name)
+	{
+		WeightingModel rtr = null;
+		if (Name.indexOf(".") < 0 )
+			Name = "org.terrier.matching.models." +Name;
+		if (rtr == null)
+		{
+			try
+			{
+				if (Name.indexOf("(") > 0){
+					String params = Name.substring( 
+						Name.indexOf("(")+1, Name.indexOf(")"));
+					String[] parameters = params.split("\\s*,\\s*");
+					
+					rtr = (WeightingModel) Class.forName(
+									Name.substring(0,Name.indexOf("(")))
+							.getConstructor(
+									new Class[]{String[].class})
+							.newInstance(
+									new Object[]{parameters});
+				}else{						
+					rtr = (WeightingModel) Class.forName(Name).newInstance();
+				}
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();
+				return null;
+			}
+		}
+		return rtr;
+	}
 
 	/** Clone this weighting model */
 	public Object clone() {
@@ -87,31 +131,29 @@ public abstract class WeightingModel implements Model, Serializable,Cloneable {
 	 * @return java.lang.String
 	 */
 	public abstract String getInfo();
-	public void prepare()
-	{
-		averageDocumentLength = cs.getAverageDocumentLength();
-		numberOfDocuments = (double)cs.getNumberOfDocuments();
-		i.setNumberOfDocuments(numberOfDocuments);
-		numberOfTokens = (double)cs.getNumberOfTokens();
-		numberOfUniqueTerms = (double)cs.getNumberOfUniqueTerms();
-		numberOfPointers = (double)cs.getNumberOfPointers();
-		documentFrequency = (double)es.getDocumentFrequency();
-		termFrequency = (double)es.getFrequency();
-	}
+	
 	public double score(Posting p)
 	{
 		return this.score(p.getFrequency(), p.getDocumentLength());
 	}
 	
 	CollectionStatistics cs;
-	public void setCollectionStatistics(CollectionStatistics _cs)
+	public void setBackgroundStatistics(CollectionStatistics _cs)
 	{
 		cs = _cs;
+		averageDocumentLength = cs.getAverageDocumentLength();
+		numberOfDocuments = (double)cs.getNumberOfDocuments();
+		i.setNumberOfDocuments(numberOfDocuments);
+		numberOfTokens = (double)cs.getNumberOfTokens();
+		numberOfUniqueTerms = (double)cs.getNumberOfUniqueTerms();
+		numberOfPointers = (double)cs.getNumberOfPointers();		
 	}
 	EntryStatistics es;
 	public void setEntryStatistics(EntryStatistics _es)
 	{
 		es = _es;
+		documentFrequency = (double)es.getDocumentFrequency();
+		termFrequency = (double)es.getFrequency();
 	}
 	
 	Request rq;
@@ -235,5 +277,16 @@ public abstract class WeightingModel implements Model, Serializable,Cloneable {
 	public double stirlingPower(double n, double m) {
 		double dif = n - m;
 		return (m + 0.5d) * Idf.log(n / m) + dif * Idf.log(n);
+	}
+	
+	public double scoreUnseen(double docLength){
+		return 0d;
+	}
+
+	/* (non-Javadoc)
+	 * @see org.terrier.matching.models.WeightingModel#score(double, double, double, double, double)
+	 */
+	public double scoreUnseen(double docLength, double nT, double F_t, double keyFrequency){
+		return 0d;
 	}
 }

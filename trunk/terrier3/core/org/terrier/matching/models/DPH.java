@@ -58,6 +58,8 @@ public class DPH extends WeightingModel {
 	 *		 tf and docLength, and other preset parameters
 	 */
 	public final double score(double tf, double docLength) {
+		if (tf==0d)
+			return 0d;
 		double f = tf/docLength;
  		double norm = (1d-f) * (1d -f)/(tf+1d);
  
@@ -86,7 +88,8 @@ public class DPH extends WeightingModel {
 		double keyFrequency) {
         double f = tf/docLength;
  		double norm = (1d-f) * (1d -f)/(tf+1d);
- 
+ 		if (tf==0d)
+			return 0d;
  		return keyFrequency *norm
  			 * (tf*Idf.log ((tf*
 			averageDocumentLength/docLength) *

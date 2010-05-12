@@ -257,8 +257,8 @@ public class DFRWeightingModel extends WeightingModel{
 	
 	
 	@Override
-	public void setCollectionStatistics(CollectionStatistics _cs) {
-		super.setCollectionStatistics(_cs);
+	public void setBackgroundStatistics(CollectionStatistics _cs) {
+		super.setBackgroundStatistics(_cs);
 		this.basicModel.setNumberOfDocuments(_cs.getNumberOfDocuments());
 		this.basicModel.setNumberOfTokens(_cs.getNumberOfTokens());
 		this.afterEffect.setAverageDocumentLength(_cs.getAverageDocumentLength());
