@@ -805,7 +805,10 @@ public class FSOrderedMapFile<
     	
     	/** {@inheritDoc} */
     	public void flush() throws IOException {
-    		logger.info("Flush forced");
+    		/**
+    		 * 20100511 Ben: Too much output on screen.
+    		 */
+    		// logger.info("Flush forced");
 			flushCache();
 		}
 
