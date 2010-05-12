@@ -17,7 +17,7 @@
  *
  * The Original Code is TRECQrelsInMemory.java.
  *
- * The Original Code is Copyright (C) 2004-2010 the University of Glasgow.
+ * The Original Code is Copyright (C) 2004-2008 the University of Glasgow.
  * All Rights Reserved.
  *
  * Contributor(s):
@@ -26,6 +26,7 @@
  */
 package org.terrier.evaluation;
 import org.terrier.utility.Files;
+import uk.ac.gla.terrier.utility.StringUtility;
 import gnu.trove.THashSet;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntObjectHashMap;
@@ -43,7 +44,7 @@ import org.terrier.utility.ApplicationSetup;
  * Loads the relevance assessments in memory, for performing
  * evaluation of runs.
  * @author Ben He &amp; Vassilis Plachouras
- * @version $Revision: 1.23 $
+ * @version $Revision: 1.1 $
  */
 public class TRECQrelsInMemory{
 	protected static final Logger logger = Logger.getRootLogger();
@@ -52,6 +53,8 @@ public class TRECQrelsInMemory{
 	 * relevant documents with respect to a query.
 	 */  
 	public QrelsHashSet[] qrelsPerQuery;
+	
+	protected boolean keepNumericChars = Boolean.parseBoolean(ApplicationSetup.getProperty("qrels.keep.numeric.chars", "false"));
 	
 	/**
 	 * An array with the qrels files.
@@ -393,7 +396,7 @@ public class TRECQrelsInMemory{
 				String queryid = stk.nextToken();
 				// takes only the numeric chars at the end of an query id to
 				// cope with ids like "WT04-065", which is interpretated as "65"
-				StringBuilder queryNoTmp = new StringBuilder();
+				/*StringBuilder queryNoTmp = new StringBuilder();
 				boolean firstNumericChar = false;
 				for (int i = queryid.length()-1; i >=0; i--){
 					char ch = queryid.charAt(i);
@@ -404,7 +407,9 @@ public class TRECQrelsInMemory{
 					else if (firstNumericChar)
 						break;
 				}
-				queryid = ""+Integer.parseInt(queryNoTmp.reverse().toString());
+				queryid = ""+Integer.parseInt(queryNoTmp.reverse().toString());*/
+				if (this.keepNumericChars)
+					queryid = StringUtility.keepNumericChars(queryid);
 				stk.nextToken();
 				String docno = stk.nextToken();
 				int relGrade = Integer.parseInt(stk.nextToken());
@@ -474,37 +479,36 @@ public class TRECQrelsInMemory{
 	public boolean isRelevant(String queryid, String docno){
 		boolean relevant = false;
 		for (int i = 0; i < qrelsPerQuery.length; i++)
-			if (qrelsPerQuery[i].queryid.equals(queryid))
+			if (qrelsPerQuery[i].queryid.equals(queryid)){
 				relevant = qrelsPerQuery[i].isRelevant(docno);
+				break;
+			}
 		return relevant;
 	}
 	
-	/**
-	 * Returns the grade of a document for a given query. 
-	 * @param qid String the identifier of the desired query.
-	 * @param docno String a document identifier.
-	 * @param def The default value to be returned if the document is not found.
-	 * @return int The grade of the document for the given query.
-	 */
-	public int getGrade(String qid, String docno, int def) {
-		int grade = def;
-		for (int i = 0; i < qrelsPerQuery.length; i++) {
-			if (qrelsPerQuery[i].queryid.equals(qid)) {
-				grade = qrelsPerQuery[i].getGrade(docno, def);
+	public boolean isJudgedNonRelevant(String queryid, String docno){
+		boolean nonRelevant = false;
+		for (int i = 0; i < qrelsPerQuery.length; i++)
+			if (qrelsPerQuery[i].queryid.equals(queryid)){
+				nonRelevant = qrelsPerQuery[i].isJudgedNonRelevant(docno); break;
 			}
-		}
-		return grade;
+		return nonRelevant;
 	}
 	
-//	public int[] getGrades(String qid, int def) {
-//		for (int i = 0; i < qrelsPerQuery.length; i++) {
-//			if (qrelsPerQuery[i].queryid.equals(qid)) {
-//				return qrelsPerQuery[i].getGrades();
-//			}
-//		}
-//		
-//		return new int[] { def };
-//	}
+	public int checkDocStatus(String queryid, String docno){
+		int status = -1;
+		for (int i = 0; i < qrelsPerQuery.length; i++){
+			if (qrelsPerQuery[i].queryid.equals(queryid)){
+				if (qrelsPerQuery[i].isRelevant(docno))
+					status = 1;
+				else if (qrelsPerQuery[i].isJudgedNonRelevant(docno))
+					status = 0;
+				else status = -1;
+				break;
+			}
+		}
+		return status;
+	}
 	
 	/**
      * Models the set of relevant documents for one query.
@@ -564,23 +568,14 @@ public class TRECQrelsInMemory{
             	return false;
             }
             
-            public int getGrade(String docno, int def){
-            	int[] grades = relGrade.toArray();
-            	int numOfGrades = grades.length;
-            	for (int i=0; i<numOfGrades; i++){
-            		if (((THashSet<String>)relGradeDocnosMap.get(grades[i])).contains(docno)){
-            			return grades[i];
-            		} else if (nonRelDocnos.contains(docno)) {
-            			return 0;
-            		}
-            	}
-            	return def;
+            /**
+             * Check if a document is judged non-relevant.
+             * @param docno The given document.
+             * @return True for judged non-relevant, false otherwise.
+             */
+            public boolean isJudgedNonRelevant(String docno){
+            	return nonRelDocnos.contains(docno);
             }
-            
-//            public int[] getGrades() {
-//            	return relGrade.toArray();
-//            }
-            
             
             /**
              * Get all relevant documents regardless of their relevance grades.
