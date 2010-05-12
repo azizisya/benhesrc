@@ -62,6 +62,8 @@ public abstract class BaseMatching implements Matching
 	protected long totalTime = 0;
      /** the logger for this class */
 	protected static final Logger logger = Logger.getLogger(Matching.class);
+	
+	protected boolean ACCEPT_NEGATIVE_SCORE = false;
 
 	/** the default namespace for the document score modifiers that are specified in the properties file. */
 	protected static String dsmNamespace = "org.terrier.matching.dsms.";
@@ -126,7 +128,6 @@ public abstract class BaseMatching implements Matching
 		this.lexicon = index.getLexicon();	
 		this.invertedIndex = index.getInvertedIndex();
 		this.collectionStatistics = index.getCollectionStatistics();
-				
 		String defaultDSMS = ApplicationSetup.getProperty("matching.dsms","");
 		
 		try {
@@ -181,6 +182,7 @@ public abstract class BaseMatching implements Matching
 		int queryLength = queryTermsToMatchList.size();
 		
 		wm = new WeightingModel[queryLength][];
+		this.ACCEPT_NEGATIVE_SCORE = false;
 		for (int i = 0; i < queryLength; i++) 
 		{
 			Map.Entry<String, LexiconEntry> termEntry    = queryTermsToMatchList.get(i);
@@ -196,14 +198,16 @@ public abstract class BaseMatching implements Matching
 			// Initialise the weighting models for this term
 			int numWM = queryTerms.getTermWeightingModels(queryTerm).length;
 			wm[i] = new WeightingModel[numWM];
-			for (int j = 0; j < numWM; j++) {
+			for (int j = 0; j < numWM; j++) {				
 				wm[i][j] = (WeightingModel) queryTerms.getTermWeightingModels(queryTerm)[j].clone();
-				wm[i][j].setCollectionStatistics(collectionStatistics);
+				wm[i][j].setBackgroundStatistics(collectionStatistics);
 				wm[i][j].setEntryStatistics(entryStats);
 				wm[i][j].setRequest(queryTerms.getRequest());
 				wm[i][j].setKeyFrequency(queryTerms.getTermWeight(queryTerm));
 				IndexUtil.configure(index, wm[i][j]);
-				wm[i][j].prepare();
+				if (!this.ACCEPT_NEGATIVE_SCORE && wm[i][j].ACCEPT_NEGATIVE_SCORE)
+					this.ACCEPT_NEGATIVE_SCORE = true;
+				// wm[i][j].prepare();
 			}
 		}
 	}

@@ -61,7 +61,7 @@ public class LMBasicMatching extends OldBasicMatching {
 	public ResultSet match(String queryNumber, MatchingQueryTerms queryTerms) throws IOException {
 		//the first step is to initialise the arrays of scores and document ids.
 		initialise();
-		
+		queryTerms.normalizeLMQueryModel();
 		
 		
 		String[] queryTermStrings = queryTerms.getTerms();
@@ -85,8 +85,8 @@ public class LMBasicMatching extends OldBasicMatching {
 		int[] docids = resultSet.getDocids();
 		double[] scores = resultSet.getScores();
 		short[] occurences = resultSet.getOccurrences();
-		
-		
+		// int[] foundUnseen = new int[scores.length];
+		// Arrays.fill(foundUnseen, 0);
 		
 		//the number of documents with non-zero score.
 		numberOfRetrievedDocuments = 0;
@@ -174,6 +174,8 @@ public class LMBasicMatching extends OldBasicMatching {
 			assignScores(i, termWeightingModels, resultSet, retDocids, postings, lEntry, queryTerms.getTermWeight(queryTermStrings[i]));
 		}
 		logger.info("Number of docs with +ve score: "+numberOfRetrievedDocuments);
+		//for (WeightingModel wmodel : queryTerms.)
+		
 		//sort in descending score order the top RETRIEVED_SET_SIZE documents
 		//long sortingStart = System.currentTimeMillis();
 		//we need to sort at most RETRIEVED_SET_SIZE, or if we have retrieved
@@ -257,15 +259,15 @@ public class LMBasicMatching extends OldBasicMatching {
 		while((docid = postings.next()) != IterablePosting.EOL)
 		{
 			while (retDocids[retIndex] < docid){
-				score = 0;
 				// unseen term in document
+				score = 0;
 				double docLength = (double)docIndex.getDocumentLength(retDocids[retIndex]);
 				for (WeightingModel wmodel: wModels)
 				{
 					score += wmodel.score(0d, docLength);
 				}
 				scores[retDocids[retIndex]] += score;
-				occurences[docid] |= mask;
+				occurences[retDocids[retIndex]] |= mask;
 				retIndex++;
 			}
 			

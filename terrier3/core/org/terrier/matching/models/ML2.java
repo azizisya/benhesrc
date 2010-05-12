@@ -73,17 +73,10 @@ public class ML2 extends WeightingModel
 	public String getInfo() {
 		return this.getClass().getSimpleName();
 	}
-	
-	@Override
-	public void prepare() {
-		super.prepare();
-		initialScore = -gF.compute_log(super.termFrequency + 1.0d)/LOG2;
-		
-	}
 
 	@Override
-	public void setCollectionStatistics(CollectionStatistics _cs) {
-		super.setCollectionStatistics(_cs);
+	public void setBackgroundStatistics(CollectionStatistics _cs) {
+		super.setBackgroundStatistics(_cs);
 		fieldCount = _cs.getNumberOfFields();
 		p = new double[fieldCount];
 		try{		
@@ -109,6 +102,7 @@ public class ML2 extends WeightingModel
 	@Override
 	public void setEntryStatistics(EntryStatistics _es) {
 		super.setEntryStatistics(_es);
+		initialScore = -gF.compute_log(super.termFrequency + 1.0d)/LOG2;
 		fieldTermFrequencies = ((FieldEntryStatistics)_es).getFieldFrequencies();
 	}
 
