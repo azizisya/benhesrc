@@ -27,7 +27,10 @@
  *   Craig Macdonald <craigm{a.}dcs.gla.ac.uk>
  */
 package org.terrier.querying;
+import gnu.trove.TIntObjectHashMap;
+
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,7 +38,6 @@ import org.apache.log4j.Logger;
 
 import org.terrier.matching.MatchingQueryTerms;
 import org.terrier.matching.models.queryexpansion.QueryExpansionModel;
-import org.terrier.querying.parser.SingleTermQuery;
 import org.terrier.structures.BitIndexPointer;
 import org.terrier.structures.CollectionStatistics;
 import org.terrier.structures.DocumentIndex;
@@ -46,6 +48,9 @@ import org.terrier.structures.MetaIndex;
 import org.terrier.structures.PostingIndex;
 import org.terrier.utility.ApplicationSetup;
 import org.terrier.utility.Rounding;
+
+import org.terrier.querying.termselector.TermSelector;
+import org.terrier.structures.ExpansionTerm;
 /**
  * Implements automatic query expansion as PostFilter that is applied to the resultset
  * after 1st-time matching.
@@ -95,7 +100,7 @@ public class QueryExpansion implements PostProcess {
 	/** The query expansion model used. */
 	protected QueryExpansionModel QEModel;
 	/** The process by which to select feedback documents */
-	protected FeedbackSelector selector = null;
+	protected FeedbackSelector docSelector = null;
 	/**
 	* The default constructor of QueryExpansion.
 	*/
@@ -124,17 +129,20 @@ public class QueryExpansion implements PostProcess {
 		if (ApplicationSetup.EXPANSION_TERMS == 0)
 			numberOfTermsToReweight = 0;
 
-		if (selector == null)
-			selector = this.getFeedbackSelector(rq);
-		if (selector == null)
+		if (docSelector == null)
+			docSelector = this.getFeedbackSelector(rq);
+		if (docSelector == null)
 			return;
-		FeedbackDocument[] feedback = selector.getFeedbackDocuments(rq);
+		FeedbackDocument[] feedback = docSelector.getFeedbackDocuments(rq);
 		if (feedback == null || feedback.length == 0)
 			return;
 	
 		double totalDocumentLength = 0;
-		for(FeedbackDocument doc : feedback)
+		int[] feedbackDocIDs = new int[feedback.length];
+		for(int i=0; i<feedbackDocIDs.length; i++)
 		{
+			FeedbackDocument doc = feedback[i];
+			feedbackDocIDs[i] = doc.docid;
 			totalDocumentLength += documentIndex.getDocumentLength(doc.docid);
 
 			if(logger.isDebugEnabled()){
@@ -142,6 +150,7 @@ public class QueryExpansion implements PostProcess {
 					" ("+doc.docid+") with "+doc.score);
 			}
 		}
+		/**
 		ExpansionTerms expansionTerms = getExpansionTerms();
 		expansionTerms.setModel(QEModel);
 		
@@ -152,18 +161,86 @@ public class QueryExpansion implements PostProcess {
 		logger.debug("Selecting "+numberOfTermsToReweight + " from " + expansionTerms.getNumberOfUniqueTerms());
 		
 		expansionTerms.setOriginalQueryTerms(query);
-		SingleTermQuery[] expandedTerms = expansionTerms.getExpandedTerms(numberOfTermsToReweight);
+		SingleTermQuery[] expandedTerms = expansionTerms.getExpandedTerms(numberOfTermsToReweight);*/
+		
+		TermSelector selector = TermSelector.getDefaultTermSelector(lastIndex);
+		selector.setResultSet(rq.getResultSet());
+		this.expand(feedbackDocIDs, query, numberOfTermsToReweight, lastIndex, QEModel, selector);
+		//ExpansionTerm[] expandedTerms = expandFromDocuments(feedbackDocIDs, query, numberOfTermsToReweight, lastIndex, QEModel, selector);
+		/**
 		for (int i = 0; i < expandedTerms.length; i++){
-			SingleTermQuery expandedTerm = expandedTerms[i];
-			query.addTermPropertyWeight(expandedTerm.getTerm(), expandedTerm.getWeight());
+			// SingleTermQuery expandedTerm = expandedTerms[i];
+			query.addTermPropertyWeight(expandedTerms[i].getTerm(), expandedTerm.getWeight());
 			if(logger.isDebugEnabled()){
 				logger.debug("term " + expandedTerms[i].getTerm()
 				 	+ " appears in expanded query with normalised weight: "
 					+ Rounding.toString(query.getTermWeight(expandedTerms[i].getTerm()), 4));
 			}
-		}
-			
+		}*/
+		// this.mergeWithExpandedTerms(expandedTerms, query);
 
+	}
+	/**
+	protected void mergeWithExpandedTerms(ExpansionTerm[] expTerms, MatchingQueryTerms query){
+		for (int i = 0; i < expTerms.length; i++){
+			if (expTerms[i].getWeightExpansion()<=0)
+				break;
+			Entry<String, LexiconEntry> entry = lexicon.getLexiconEntry(expTerms[i].getTermID());
+			double finalWeight = (QEModel.PARAMETER_FREE&&QEModel.SUPPORT_PARAMETER_FREE_QE)?
+				(QEModel.ROCCHIO_ALPHA*query.getTermWeight(entry.getKey())+expTerms[i].getWeightExpansion()):
+					(QEModel.ROCCHIO_ALPHA*query.getTermWeight(entry.getKey())+QEModel.ROCCHIO_BETA*expTerms[i].getWeightExpansion());
+			query.setTermProperty(entry.getKey(), finalWeight);
+			if(logger.isDebugEnabled()){
+				logger.debug("term " + entry.getKey()
+				 	+ " appears in expanded query with normalised weight: "
+					+ Rounding.toString(query.getTermWeight(entry.getKey()), 4));
+			}
+		}
+	}*/
+	
+	protected void expand(int[] docIDs, 
+			MatchingQueryTerms query, 
+			int numberOfTermsToReweight,
+			Index index,
+			QueryExpansionModel QEModel,
+			TermSelector selector){
+		if (query!=null)
+			selector.setOriginalQueryTerms(query.getTerms());
+		selector.assignTermWeights(docIDs, QEModel, index.getLexicon());
+		
+		for (int i=0; i<docIDs.length; i++)
+			logger.debug("doc "+(i+1)+": "+docIDs[i]);
+		logger.debug("Number of unique terms in the feedback document set: "+selector.getNumberOfUniqueTerms());
+		
+		selector.mergeWithQuery(QEModel, query, numberOfTermsToReweight);
+	}
+	
+	public ExpansionTerm[] expandFromDocuments(
+			int[] docIDs, 
+			MatchingQueryTerms query, 
+			int numberOfTermsToReweight,
+			Index index,
+			QueryExpansionModel QEModel,
+			TermSelector selector){
+		 
+		if (query!=null)
+			selector.setOriginalQueryTerms(query.getTerms());
+		selector.assignTermWeights(docIDs, QEModel, index.getLexicon());
+		
+		for (int i=0; i<docIDs.length; i++)
+			logger.debug("doc "+(i+1)+": "+docIDs[i]);
+		logger.debug("Number of unique terms in the feedback document set: "+selector.getNumberOfUniqueTerms());
+		
+		//selector.mergeWithQuery(QEModel, query, numberOfTermsToReweight);
+		
+		TIntObjectHashMap<ExpansionTerm> queryTerms = selector.getMostWeightedTermsInHashMap(numberOfTermsToReweight);
+		
+		ExpansionTerm[] expTerms = new ExpansionTerm[queryTerms.size()];
+		int counter = 0;
+		for (int i : queryTerms.keys())
+			expTerms[counter++] = queryTerms.get(i);
+		Arrays.sort(expTerms);
+		return expTerms;
 	}
 
 	/** For easier sub-classing of which index the query expansion comes from */
@@ -278,7 +355,7 @@ public class QueryExpansion implements PostProcess {
 					" post process. Using default model Bo1");
 			qeModel = "Bo1";
 		}
-		setQueryExpansionModel(getQueryExpansionModel(qeModel));
+		setQueryExpansionModel(QueryExpansionModel.getModel(qeModel));
 		if(logger.isInfoEnabled()){
 			logger.info("query expansion model: " + QEModel.getInfo());
 		}
@@ -328,34 +405,6 @@ public class QueryExpansion implements PostProcess {
 		logger.info("Accessing inverted file for expanded query " + q.getQueryID());
 		manager.runMatching(q);
 		
-	}
-	/** Obtain the query expansion model for QE to use.
-	 *  This will be cached in a hashtable for the lifetime of the
-	 *  application. If Name does not contain ".", then <tt>
-	 *  NAMESPACE_QEMODEL will be prefixed to it before loading.
-	 *  @param Name the name of the query expansion model to load.
-	 */
-	public QueryExpansionModel getQueryExpansionModel(String Name)
-	{
-		QueryExpansionModel rtr = null;
-		if (Name.indexOf(".") < 0 )
-			Name = NAMESPACE_QEMODEL +Name;
-		//check for acceptable matching models
-		rtr = (QueryExpansionModel)Cache_QueryExpansionModel.get(Name);
-		if (rtr == null)
-		{
-			try
-			{
-				rtr = (QueryExpansionModel) Class.forName(Name).newInstance();
-			}
-			catch(Exception e)
-			{
-				logger.error("Problem with postprocess named: "+Name+" : ",e);
-				return null;
-			}
-			Cache_QueryExpansionModel.put(Name, rtr);
-		}
-		return rtr;
 	}
 	
 	/**
