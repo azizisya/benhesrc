@@ -618,6 +618,7 @@ public class TRECQuerying {
 		}
 		logger.debug("Time to write results: "
 				+ (System.currentTimeMillis() - t));
+		System.gc();
 	}
 
 	/**
