@@ -74,13 +74,25 @@ public class TRECQueryingExpansion extends TRECQuerying {
 	 */
 	public SearchRequest processQuery(String queryId, String query, double cParameter, boolean c_set) {
 		SearchRequest srq = queryingManager.newSearchRequest(queryId, query);
-		
-		if (c_set)
+		String c = null;
+		/**
+		 * 20100516 Ben: Added support to set c values in properties.
+		 */
+		if (c_set) {
 			srq.setControl("c", Double.toString(cParameter));
+		} else if ((c = ApplicationSetup.getProperty("trec.c", null)) != null) {
+			srq.setControl("c", c);
+		}
+		c = null;
+		if ((c = srq.getControl("c")).length() > 0) {
+			c_set = true;
+		}
+		srq.setControl("c_set", "" + c_set);
+		
 		srq.addMatchingModel(mModel, wModel);
 		srq.setControl("qemodel", qeModel);
 		srq.setControl("qe", "on");
-		srq.setControl("c_set", ""+c_set);
+		// srq.setControl("c_set", ""+c_set);
 
 		if(logger.isInfoEnabled())
 			logger.info("processing query " + queryId + " '"+ query + "'");
