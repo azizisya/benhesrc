@@ -175,7 +175,7 @@ public class TRECQueryingExpansion extends TRECQuerying {
 				}
 				
 				String qeModelGiven = null;
-				if ((qeModelGiven = ApplicationSetup.getProperty("trec.qe.model", null)) != null)
+				if ((qeModelGiven = ApplicationSetup.getProperty("trec.qe.model", ApplicationSetup.getProperty("trec.qemodel", null))) != null)
 				{
 					qeModel = qeModelGiven;
 					while (querySource.hasNext()){
