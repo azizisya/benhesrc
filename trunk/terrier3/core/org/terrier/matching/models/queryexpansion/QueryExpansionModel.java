@@ -66,7 +66,7 @@ public abstract class QueryExpansionModel extends WeightingModel{
 		/* Accept both rocchio.beta and rocchio_beta as property name. rocchio_beta will deprecated in due course. */
 		ROCCHIO_BETA = Double.parseDouble(ApplicationSetup.getProperty("rocchio.beta", ApplicationSetup.getProperty("rocchio_beta", "0.4d")));
 		ROCCHIO_ALPHA = Double.parseDouble(ApplicationSetup.getProperty("rocchio.alpha", ApplicationSetup.getProperty("rocchio_alpha", "1d")));
-		PARAMETER_FREE = Boolean.parseBoolean(ApplicationSetup.getProperty("parameter.free.expansion", "true"));
+		PARAMETER_FREE = Boolean.parseBoolean(ApplicationSetup.getProperty("parameter.free.expansion", "false"));
 	}
 	/**
 	 *  A default constructor for the class that initialises the idf attribute.
