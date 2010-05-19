@@ -355,7 +355,9 @@ public class QueryExpansion implements PostProcess {
 					" post process. Using default model Bo1");
 			qeModel = "Bo1";
 		}
-		setQueryExpansionModel(QueryExpansionModel.getModel(qeModel));
+		QueryExpansionModel model = QueryExpansionModel.getModel(qeModel);
+		model.setParameter(Double.parseDouble(ApplicationSetup.getProperty("qe.c", ""+model.getParameter())));
+		setQueryExpansionModel(model);
 		if(logger.isInfoEnabled()){
 			logger.info("query expansion model: " + QEModel.getInfo());
 		}
