@@ -168,6 +168,8 @@ public class DFRTermSelector extends TermSelector {
 		}
 		this.feedbackSetSize = docids.length;
 		this.assignDFRTermWeights(QEModel, bgTermidFreqMap, bgTermidDocfreqMap);
+		bgTermidFreqMap.clear(); bgTermidFreqMap = null;
+		bgTermidDocfreqMap.clear(); bgTermidDocfreqMap = null;
 	}
 
 }
