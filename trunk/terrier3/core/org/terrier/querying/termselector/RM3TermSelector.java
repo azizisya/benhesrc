@@ -24,8 +24,6 @@ public class RM3TermSelector extends TermSelector{
 	/** The logger used */
 	private static Logger logger = Logger.getRootLogger();
 	
-	protected int EXPANSION_MIN_DOCUMENTS;
-	
 	public RM3TermSelector(){
 		super();
 	}
@@ -46,7 +44,6 @@ public class RM3TermSelector extends TermSelector{
 			TIntIntHashMap bgTermidFreqMap, TIntIntHashMap bgTermidDocfreqMap){
 		int effDocuments = termidFreqMaps.length;
 		QEModel.setBackgroundStatistics(index.getCollectionStatistics());
-		QEModel.setParameter(Double.parseDouble(ApplicationSetup.getProperty("rm3.lambda", "1000d")));
 		/*
 		TermSelector selector = TermSelector.getTermSelector("DFRTermSelector", index);
 		selector.setOriginalQueryTermids(originalQueryTermidSet.toArray());
@@ -115,6 +112,7 @@ public class RM3TermSelector extends TermSelector{
 		double[] queryGenWeights = new double[effDocuments];
 		Arrays.fill(queryGenWeights, 1d);
 		
+		
 		/*for (int termid : termids){
 			for (int i=0; i<effDocuments; i++){
 				if (expTermMaps[i].containsKey(termid)){
@@ -139,6 +137,11 @@ public class RM3TermSelector extends TermSelector{
 					queryGenWeights[i] *= expTermMaps[i].get(termid).getWeightExpansion();
 			}
 		}
+		double maxDocWeight = 0d;
+		for (int i=0; i<effDocuments; i++)
+			maxDocWeight = Math.max(maxDocWeight, queryGenWeights[i]);
+		for (int i=0; i<effDocuments; i++)
+			queryGenWeights[i] += maxDocWeight;
 		
 		// int querylength = this.originalQueryTermidSet.size();
 		
@@ -167,15 +170,15 @@ public class RM3TermSelector extends TermSelector{
 		Arrays.sort(candidateTerms);
 		
 		termMap = new TIntObjectHashMap<ExpansionTerm>();
+		/*
 		double normaliser = 0d;
 		for (ExpansionTerm term : candidateTerms){	
 			normaliser += term.getWeightExpansion();
-		}
+		}*/
 		
-		// normalise the expansion weights by the maximum weight among the expansion terms
-		// double normaliser = candidateTerms[0].getWeightExpansion();
+		// map weights to probabilities
 		for (ExpansionTerm term : candidateTerms){			
-			term.setWeightExpansion(term.getWeightExpansion()/normaliser);
+			// term.setWeightExpansion(term.getWeightExpansion()/normaliser);
 			termMap.put(term.getTermID(), term);
 		}
 		for (int i=0; i<effDocuments; i++){
@@ -188,11 +191,17 @@ public class RM3TermSelector extends TermSelector{
 		query.normalizeLMQueryModel();
 		ExpansionTerm[] expTerms = this.getMostWeightedTerms(numberOfExpansionTerms);
 		// this.norm(expTerms);
+		// normalize expansion term weights
+		double sum = 0d;
+		for (ExpansionTerm term : expTerms)
+			sum += term.getWeightExpansion();
+		
 		for (int i = 0; i < expTerms.length; i++){
 			if (expTerms[i].getWeightExpansion()<=0)
 				break;
 			Entry<String, LexiconEntry> entry = lexicon.getLexiconEntry(expTerms[i].getTermID());
-			double finalWeight = (1-QEModel.ROCCHIO_BETA)*query.getTermWeight(entry.getKey())+QEModel.ROCCHIO_BETA*expTerms[i].getWeightExpansion();
+			double finalWeight = (1-QEModel.ROCCHIO_BETA)*query.getTermWeight(entry.getKey())+
+					QEModel.ROCCHIO_BETA*expTerms[i].getWeightExpansion()/sum;
 			query.setTermProperty(entry.getKey(), finalWeight);
 			/*
 			if(logger.isDebugEnabled()){
