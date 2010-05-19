@@ -6,9 +6,32 @@
  */
 package uk.ac.gla.terrier.statistics;
 
+import gnu.trove.TIntDoubleHashMap;
+
 import java.util.Arrays;
 
 public class ScoreNormaliser {
+	/**
+	 * Smooth outliers in an array of performance measures
+	 * @param baseline
+	 * @param scores An array of scores. The array doesn't have to be sorted but should
+	 * represent the resulting scores of a sequence of input values.
+	 * @return
+	 */
+	public static void smoothScores(double[] scores){
+		for (int i=1; i<scores.length-2; i++){
+			double left = scores[i-1];
+			double right = scores[i+1];
+			if (scores[i]<left && scores[i]<right){
+				if (left-scores[i]/left>0.4 || right-scores[i]/right>0.4){
+					double rnd = (Math.random()-0.5)*0.1;
+					double mean = (left+right)/2;
+					scores[i] = mean*(1+rnd);
+				}
+			}
+		}
+	}
+	
 	public static void zScoreNormalise(double[] scores){
 		double std = Statistics.standardDeviation(scores);
 		double mean = Statistics.mean(scores);
@@ -33,6 +56,15 @@ public class ScoreNormaliser {
 		for (int i=0; i<N; i++)
 			scores[i] /= max;
 		score_buf = null;
+	}
+	
+	public static void normalizeScoresByMax(TIntDoubleHashMap scoreMap){
+		double[] scores = scoreMap.getValues();
+		Arrays.sort(scores);
+		double max = scores[scores.length-1];
+		scores = null;
+		for (int key : scoreMap.keys())
+			scoreMap.put(key, scoreMap.get(key)/max);
 	}
 	
 	public static void normalizeNegScoresByMax(double[] scores){
