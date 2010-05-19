@@ -37,6 +37,7 @@ public class SmartMatching extends BaseMatching {
 	public ResultSet match(String queryNumber, MatchingQueryTerms queryTerms)
 			throws IOException {
 		initialise(queryTerms);
+		String[] queryTermStrings = queryTerms.getTerms();
 		// Check whether we need to match an empty query. If so, then return the
 		// existing result set.
 		// String[] queryTermStrings = queryTerms.getTerms();
@@ -56,6 +57,8 @@ public class SmartMatching extends BaseMatching {
 		Posting[] psts = new Posting[queryLength];
 		for (int i = 0; i < queryLength; i++) {
 			LexiconEntry lexiconEntry = queryTermsToMatchList.get(i).getValue();
+			logger.debug((i + 1) + ": " + queryTermsToMatchList.get(i).getKey() + " with " + lexiconEntry.getDocumentFrequency() 
+					+ " documents (TF is " + lexiconEntry.getFrequency() + ").");
 			postings = invertedIndex
 					.getPostings((BitIndexPointer) lexiconEntry);
 			psts[i] = new Posting(postings, wm[i]);
@@ -65,6 +68,8 @@ public class SmartMatching extends BaseMatching {
 		resultSet.initialise();
 		this.numberOfRetrievedDocuments = resultSet.getExactResultSize();
 		finalise(queryTerms);
+		for (int i=0; i<queryLength; i++)
+			psts[i] = null;
 		return resultSet;
 	}
 
@@ -96,6 +101,7 @@ public class SmartMatching extends BaseMatching {
 		}
 
 		collector.initialise();
+		pq.clear(); pq = null;
 	}
 	
 //	protected void finalise(MatchingQueryTerms queryTerms) {
