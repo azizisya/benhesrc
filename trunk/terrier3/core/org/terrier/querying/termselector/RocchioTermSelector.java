@@ -17,14 +17,14 @@ import org.terrier.structures.ExpansionTerm;
 import org.terrier.structures.Index;
 import org.terrier.structures.Lexicon;
 import org.terrier.structures.LexiconEntry;
-import org.terrier.utility.ApplicationSetup;
+
+import uk.ac.gla.terrier.statistics.ScoreNormaliser;
+import uk.ac.gla.terrier.statistics.Statistics;
 
 public class RocchioTermSelector extends TermSelector{
 
 	/** The logger used */
 	private static Logger logger = Logger.getRootLogger();
-	
-	protected int EXPANSION_MIN_DOCUMENTS;
 	
 	public RocchioTermSelector(){
 		super();
@@ -41,55 +41,106 @@ public class RocchioTermSelector extends TermSelector{
 		assignTermWeights(Arrays.copyOf(docids, feedbackSetSize), QEModel, bgLexicon);
 	}
 	
-	public void assignTermWeights(TIntIntHashMap[] termidFreqMaps, QueryExpansionModel QEModel, 
-			TIntIntHashMap bgTermidFreqMap, TIntIntHashMap bgTermidDocfreqMap){
+	protected void assignWeights(TIntIntHashMap[] termidFreqMaps, QueryExpansionModel QEModel, 
+			TIntIntHashMap bgTermidFreqMap, TIntIntHashMap bgTermidDocfreqMap, 
+			TIntIntHashMap termidDFMap, int[] termids,
+			TIntObjectHashMap<ExpansionTerm>[] expTermMaps){
 		int effDocuments = termidFreqMaps.length;
-		TermSelector selector = TermSelector.getTermSelector("DFRTermSelector", index);
-		selector.setOriginalQueryTermids(originalQueryTermidSet.toArray());
-		selector.setMetaInfo("normalize.weights", "false");
-		ExpansionTerm[][] expTerms = new ExpansionTerm[effDocuments][];
+		QEModel.setBackgroundStatistics(index.getCollectionStatistics());
+		
+		int[] docLength = new int[effDocuments];
 		
 		// for each of the top-ranked documents
 		for (int i=0; i<effDocuments; i++){
-			// obtain the weighted terms
-			TIntIntHashMap[] oneMap = {termidFreqMaps[i]};
-			selector.assignTermWeights(oneMap, QEModel, bgTermidFreqMap, bgTermidDocfreqMap);
-			expTerms[i] = selector.getMostWeightedTerms(selector.getNumberOfUniqueTerms());
+			docLength[i] = Statistics.sum(termidFreqMaps[i].getValues());
 		}
-		// merge expansion terms: compute mean term weight for each term, sort again
-		TIntDoubleHashMap termidWeightMap = new TIntDoubleHashMap();
-		TIntIntHashMap termidDFMap = new TIntIntHashMap();
 		for (int i=0; i<effDocuments; i++){
-			for (int j=0; j<expTerms[i].length; j++){
-				termidWeightMap.adjustOrPutValue(expTerms[i][j].getTermID(), expTerms[i][j].getWeightExpansion(), 
-						expTerms[i][j].getWeightExpansion());
-				termidDFMap.adjustOrPutValue(expTerms[i][j].getTermID(), 1, 1);
+			// assign weights for each term in each document
+			for (int termid : termids){
+				if (termidFreqMaps[i].containsKey(termid)){
+					// seen term
+					double score = QEModel.score( termidFreqMaps[i].get(termid),
+							docLength[i], 
+							bgTermidDocfreqMap.get(termid), 
+							bgTermidFreqMap.get(termid), 
+							1d);
+					ExpansionTerm term = new ExpansionTerm(termid, termidFreqMaps[i].get(termid));
+					term.setWeightExpansion(score);
+					expTermMaps[i].put(termid, term);
+					termidDFMap.adjustOrPutValue(termid, 1, 1);
+				}
+			}
+		}
+	}
+	
+	public void assignTermWeights(TIntIntHashMap[] termidFreqMaps, QueryExpansionModel QEModel, 
+			TIntIntHashMap bgTermidFreqMap, TIntIntHashMap bgTermidDocfreqMap){
+		int effDocuments = termidFreqMaps.length;
+		
+		TIntIntHashMap termidDFMap = new TIntIntHashMap();
+		
+		TIntObjectHashMap<ExpansionTerm>[] expTermMaps = new TIntObjectHashMap[effDocuments];
+		for (int i=0; i<effDocuments; i++){
+			expTermMaps[i] = new TIntObjectHashMap<ExpansionTerm>();
+		}
+		TIntHashSet termidSet = new TIntHashSet();
+		
+		// for each of the top-ranked documents
+		for (int i=0; i<effDocuments; i++){
+			termidSet.addAll(termidFreqMaps[i].keys());
+		}
+		
+		int [] termids = termidSet.toArray();
+		Arrays.sort(termids);
+		this.assignWeights(termidFreqMaps, QEModel, bgTermidFreqMap, bgTermidDocfreqMap, termidDFMap, termids, expTermMaps);
+		termidSet.clear(); termidSet = null;
+		
+		// merge expansion terms: compute mean term weight for each term, sort again
+		// Unlike Rocchio's term selector, RM3 considers unseen terms
+		TIntDoubleHashMap termidWeightMap = new TIntDoubleHashMap();
+		// TIntIntHashMap termidDFMap = new TIntIntHashMap();
+		
+		
+		// int querylength = this.originalQueryTermidSet.size();
+		// expansion term should appear in at least half of the feedback documents
+		// int minDF = (effDocuments%2==0)?(effDocuments/2):(effDocuments/2+1);
+		int minDF = 2;
+		
+		for (int termid : termids){
+			if (effDocuments>minDF && termidDFMap.get(termid) < minDF)
+				termidWeightMap.put(termid, 0d);
+			else{
+				double score = 0d;
+				for (int i=0; i<effDocuments; i++){
+					if (expTermMaps[i].containsKey(termid))
+						score += expTermMaps[i].get(termid).getWeightExpansion();
+				}
+				termidWeightMap.put(termid, score);
 			}
 		}
 		
 		ExpansionTerm[] candidateTerms = new ExpansionTerm[termidWeightMap.size()];
-		// expansion term should appear in at least half of the feedback documents
-		//int minDF = (effDocuments%2==0)?(effDocuments/2):(effDocuments/2+1);
-		int minDF = 2;
 		int counter = 0;
 		for (int termid : termidWeightMap.keys()){
 			candidateTerms[counter] = new ExpansionTerm(termid);
-			if (effDocuments>minDF&&termidDFMap.get(termid)<minDF)
-				candidateTerms[counter].setWeightExpansion(0d);
-			else
-				candidateTerms[counter].setWeightExpansion(termidWeightMap.get(termid)/termidDFMap.get(termid));
+			candidateTerms[counter].setWeightExpansion(termidWeightMap.get(termid)/effDocuments);
 			counter++;
 		}
 		Arrays.sort(candidateTerms);
 		
 		termMap = new TIntObjectHashMap<ExpansionTerm>();
+		double normaliser = candidateTerms[0].getWeightExpansion();
 		
 		// normalise the expansion weights by the maximum weight among the expansion terms
-		double normaliser = candidateTerms[0].getWeightExpansion();
 		for (ExpansionTerm term : candidateTerms){			
 			term.setWeightExpansion(term.getWeightExpansion()/normaliser);
 			termMap.put(term.getTermID(), term);
 		}
+		// release memories
+		for (int i=0; i<effDocuments; i++){
+			expTermMaps[i].clear(); expTermMaps[i] = null;
+		}
+		termidDFMap.clear(); termidDFMap = null;
 	}
 	
 	public void mergeWithQuery(QueryExpansionModel QEModel, MatchingQueryTerms query, int numberOfExpansionTerms){
@@ -98,9 +149,7 @@ public class RocchioTermSelector extends TermSelector{
 			if (expTerms[i].getWeightExpansion()<=0)
 				break;
 			Entry<String, LexiconEntry> entry = lexicon.getLexiconEntry(expTerms[i].getTermID());
-			double finalWeight = (QEModel.PARAMETER_FREE&&QEModel.SUPPORT_PARAMETER_FREE_QE)?
-				(QEModel.ROCCHIO_ALPHA*query.getTermWeight(entry.getKey())+expTerms[i].getWeightExpansion()):
-					(QEModel.ROCCHIO_ALPHA*query.getTermWeight(entry.getKey())+QEModel.ROCCHIO_BETA*expTerms[i].getWeightExpansion());
+			double finalWeight = QEModel.ROCCHIO_ALPHA*query.getTermWeight(entry.getKey())+QEModel.ROCCHIO_BETA*expTerms[i].getWeightExpansion();
 			query.setTermProperty(entry.getKey(), finalWeight);
 			/**
 			if(logger.isDebugEnabled()){
@@ -114,9 +163,6 @@ public class RocchioTermSelector extends TermSelector{
 	@Override
 	public void assignTermWeights(int[] docids, QueryExpansionModel QEModel, Lexicon bgLexicon) {
 		int effDocuments = docids.length;
-		TermSelector selector = TermSelector.getTermSelector("DFRTermSelector", index);
-		selector.setMetaInfo("normalize.weights", "false");
-		ExpansionTerm[][] expTerms = new ExpansionTerm[effDocuments][];
 		
 		TIntIntHashMap[] termidFreqMaps = new TIntIntHashMap[effDocuments];
 		TIntIntHashMap bgTermidFreqMap = new TIntIntHashMap();
