@@ -59,8 +59,9 @@ public class PassageBasedDSM implements DocumentScoreModifier {
 			for (int i=0; i<scores.length; i++)
 				scores[i] = Math.pow(2, scores[i]);
 		}
-		// possible improvement: do not consider passages in which all query terms are unseen
-		return Statistics.mean(scores);
+		double mean = Statistics.mean(scores);
+		psgLength = null; scores = null;
+		return mean;
 	}
 	
 	public boolean modifyScores(final Index index, final MatchingQueryTerms queryTerms, final ResultSet resultSet){
