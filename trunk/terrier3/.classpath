@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="core"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="/home/ben/workspace/lib/terrier3_lib/antlr.jar"/>
 	<classpathentry kind="lib" path="/home/ben/workspace/lib/terrier3_lib/commons-lang-2.3.jar"/>
@@ -11,10 +11,12 @@
 	<classpathentry kind="lib" path="/home/ben/workspace/lib/terrier3_lib/org.mortbay.jetty-5.1.15.jar"/>
 	<classpathentry kind="lib" path="/home/ben/workspace/lib/terrier3_lib/PDFBox-0.6.7a.jar"/>
 	<classpathentry kind="lib" path="/home/ben/workspace/lib/terrier3_lib/poi-2.5.1-final-20040804.jar"/>
-	<classpathentry kind="lib" path="/home/ben/workspace/lib/terrier3_lib/servlet-api.jar"/>
+	<classpathentry kind="lib" path="/home/ben/benhecode/benhesrc/lib/terrier3_lib/servlet-api.jar"/>
 	<classpathentry kind="lib" path="/home/ben/workspace/lib/terrier3_lib/snowball-20071024.jar"/>
 	<classpathentry kind="lib" path="/home/ben/workspace/lib/terrier3_lib/tm-extractors-0.4.jar"/>
 	<classpathentry kind="lib" path="/home/ben/workspace/lib/terrier3_lib/trove-2.0.2.jar"/>
 	<classpathentry kind="lib" path="/home/ben/workspace/lib/terrier3_lib/winfileopen.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/src_statistics"/>
+	<classpathentry kind="lib" path="/home/ben/benhecode/benhesrc/lib/terrier3_lib/DUTLIB.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
