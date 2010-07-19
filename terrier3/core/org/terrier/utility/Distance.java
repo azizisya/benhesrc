@@ -220,7 +220,57 @@ public class Distance{
 		}
 	}
 	
-	/** number of blocks where */
+	/** Counts number of blocks where two terms occur within a block of windowSize in length, in a document of length documentLengthInTokens
+	 * where the blocks for the terms are as given
+	 * @param blocksOfTerm1 
+	 * @param start1 The start index for the correct blockIds in blocksOfTerm1 
+	 * @param end1 The end for the correct blockIds in blocksOfTerm1 
+	 * @param blocksOfTerm2
+	 * @param start2 The start index for the correct blockIds in blocksOfTerm2
+	 * @param end2 The end index for the correct blockIds in blocksOfTerm2
+	 * @param windowSize
+	 * @param documentLengthInTokens
+	 **/
+	public static int noTimesOrdered(final int[] blocksOfTerm1, int start1, int end1, final int[] blocksOfTerm2, int start2, int end2, final int windowSize, final int documentLengthInTokens){
+		
+		if( blocksOfTerm1 == null){
+			return 0;
+		}
+		
+		if(blocksOfTerm2 == null){
+			return 0;
+		}
+		
+		int numberOfNGrams = documentLengthInTokens< windowSize ? 1 :documentLengthInTokens - windowSize + 1;
+		int count = 0;
+		
+		TIntObjectHashMap<TIntHashSet> windowBlockMap1 = new TIntObjectHashMap<TIntHashSet>();
+		TIntObjectHashMap<TIntHashSet> windowBlockMap2 = new TIntObjectHashMap<TIntHashSet>();
+		windowsForTermsWithPosition(blocksOfTerm1, start1, end1, windowSize, numberOfNGrams, windowBlockMap1);
+		windowsForTermsWithPosition(blocksOfTerm2, start2, end2, windowSize, numberOfNGrams, windowBlockMap2);
+		
+		for(int i=0; i<numberOfNGrams; i++){
+			if (windowBlockMap1.containsKey(i) && windowBlockMap2.containsKey(i)){
+				int[] blocks1 = windowBlockMap1.get(i).toArray();
+				int[] blocks2 = windowBlockMap2.get(i).toArray();
+				Arrays.sort(blocks2);
+				int length2 = blocks2.length;
+				for (int pos : blocks1){
+					if (pos < blocks2[length2-1]){
+						count++;
+						break;
+					}
+				}
+			}
+		}
+		windowBlockMap1.clear(); windowBlockMap1 = null;
+		windowBlockMap2.clear(); windowBlockMap2 = null;
+		return count;
+	}
+	
+	/** number of blocks where 
+	 * @deprecated
+	 * */
 	public static final int noTimesSameOrder(final int[] blocksOfTerm1, int start1, int end1, final int[] blocksofTerm2, int start2, int end2, final int windowSize, final int documentLengthInTokens){
 		
 		if( blocksOfTerm1 == null){
@@ -237,8 +287,8 @@ public class Distance{
 		for (int k1=start1; k1<end1; k1++) {
 			for (int k2=start2; k2<end2; k2++) {
 				if ( ( (blocksofTerm2[k2]-blocksOfTerm1[k1]<windowSize) && ( (blocksofTerm2[k2]-blocksOfTerm1[k1])>0) ) ) {
-					final int len = blocksofTerm2.length;
-					for(int i=0; i<len; i++){
+					// final int len = end2-start2;
+					for(int i=start2; i<end2; i++){
 						final int a = blocksofTerm2[i];
 						int j;
 						if( a - windowSize+1 < 0)
@@ -256,7 +306,7 @@ public class Distance{
 		
 		int count = 0;
 		
-		for(int i=0; i<documentLengthInTokens; i++){
+		for(int i=0; i<numberOfNGrams; i++){
 			if(matchingWindows[i])
 				count++;
 		}
