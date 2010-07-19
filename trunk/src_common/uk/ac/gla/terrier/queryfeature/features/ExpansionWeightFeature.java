@@ -33,7 +33,8 @@ public class ExpansionWeightFeature extends QueryFeature {
 		for (int i=0; i<docids.length; i++)
 			totalLength+=docIndex.getDocumentLength(docids[i]);
 		TermSelector selector = TermSelector.getTermSelector("DFRTermSelector", index);
-		ExpansionTerm[] expterms = QueryExpansion.expandFromDocuments(docids, null, totalLength, index, model, selector);
+		QueryExpansion qe = new QueryExpansion();
+		ExpansionTerm[] expterms = qe.expandFromDocuments(docids, null, totalLength, index, model, selector);
 		Arrays.sort(expterms);
 		int start = minTermRank;
 		int end = Math.min(maxTermRank, expterms.length-1);

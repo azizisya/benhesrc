@@ -2,14 +2,14 @@
 <classpath>
 	<classpathentry kind="src" path=""/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/trove.jar"/>
-	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/mg4j-2.1.2.jar"/>
-	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/log4j.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/terrier2"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/weka"/>
-	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/antlr.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/src_statistics"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/src_links"/>
-	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/mtj.jar"/>
+	<classpathentry kind="lib" path="/home/ben/benhecode/benhesrc/lib/antlr.jar"/>
+	<classpathentry kind="lib" path="/home/ben/benhecode/benhesrc/lib/log4j.jar"/>
+	<classpathentry kind="lib" path="/home/ben/benhecode/benhesrc/lib/mg4j-2.1.2.jar"/>
+	<classpathentry kind="lib" path="/home/ben/benhecode/benhesrc/lib/mtj.jar"/>
+	<classpathentry kind="lib" path="/home/ben/benhecode/benhesrc/lib/trove.jar"/>
 	<classpathentry kind="output" path=""/>
 </classpath>

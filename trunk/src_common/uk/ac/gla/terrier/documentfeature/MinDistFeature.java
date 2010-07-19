@@ -71,7 +71,8 @@ public class MinDistFeature extends DocumentFeature {
 			if (terms==null)
 				return;
 			TermSelector selector = TermSelector.getDefaultTermSelector(index); 
-			ExpansionTerm[] expterms = QueryExpansion.expandFromDocuments(oneDocid, null, terms[0].length, index, model, selector);
+			QueryExpansion qe = new QueryExpansion();
+			ExpansionTerm[] expterms = qe.expandFromDocuments(oneDocid, null, terms[0].length, index, model, selector);
 				
 				/*QueryExpansion.expandFromDocuments(oneDocid, 
 					null, terms[0].length, 
