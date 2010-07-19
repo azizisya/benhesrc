@@ -13,7 +13,7 @@ public class NC extends ProximityModel {
 	
 	public double getNGramFrequencyOrdered(int[] blocksOfTerm1, int start1, int end1,
 			int[] blocksOfTerm2, int start2, int end2, int wSize, int docLength) {
-		double nf = Distance./*noTimesOrdered*/noTimesSameOrder(blocksOfTerm1, start1, end1, blocksOfTerm2, start2, end2, wSize, docLength);
+		double nf = Distance.noTimesOrdered(blocksOfTerm1, start1, end1, blocksOfTerm2, start2, end2, wSize, docLength);
 		return nf;
 	}
 
