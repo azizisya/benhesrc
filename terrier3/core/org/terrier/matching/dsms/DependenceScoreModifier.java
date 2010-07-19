@@ -27,6 +27,9 @@
  */
 package org.terrier.matching.dsms;
 
+import gnu.trove.THashMap;
+import gnu.trove.TIntHashSet;
+
 import java.io.IOException;
 
 import org.terrier.matching.MatchingQueryTerms;
@@ -89,7 +92,13 @@ public abstract class DependenceScoreModifier  implements DocumentScoreModifier 
 
 	/** type of proximity to use */
 	protected String dependency = ApplicationSetup.getProperty(
-				"proximity.dependency.type", "");
+				"proximity.dependency.type", "SD");
+	
+	protected boolean ORDERED;
+	protected boolean UNORDERED;
+	
+	protected THashMap<String, TIntHashSet> termPositionMap;
+	
 	protected final int phraseQTWfnid = Integer.parseInt(ApplicationSetup
 				.getProperty("proximity.qtw.fnid", "1"));
 	/** weight of unigram model */
@@ -156,6 +165,10 @@ public abstract class DependenceScoreModifier  implements DocumentScoreModifier 
 				System.err.println("phrase term: " + phraseTerms[i]);
 			}
 	
+			dependency = ApplicationSetup.getProperty("proximity.dependency.type", "SD");
+			ORDERED = Boolean.parseBoolean(ApplicationSetup.getProperty("proximity.ordered", "false"));
+			UNORDERED = Boolean.parseBoolean(ApplicationSetup.getProperty("proximity.unordered", "true"));
+			this.termPositionMap = MatchingQueryTerms.getTermPositions(terms.getQuery().toString());
 			
 			w_t = Double.parseDouble(ApplicationSetup.getProperty(
 					"proximity.w_t", "1.0d"));
@@ -287,9 +300,15 @@ public abstract class DependenceScoreModifier  implements DocumentScoreModifier 
 							default:
 								combinedPhraseQTWWeight = 1.0d;
 							}
-							double s = scoreFDSD(SD, ips[i], ips[i + 1],
-									avgDocLen);
-							scores[k] += combinedPhraseQTWWeight * w_o * s;
+							if (UNORDERED){
+								double s = scoreFDSD(false, ips[i], ips[i + 1], avgDocLen);
+								scores[k] += combinedPhraseQTWWeight * w_u * s;
+							}
+							if (ORDERED){
+								double s = scoreFDSD(true, ips[i], ips[i + 1], avgDocLen);
+								s += scoreFDSD(true, ips[i+1], ips[i], avgDocLen);
+								scores[k] += combinedPhraseQTWWeight * w_o * s;
+							}
 						}
 					} else {
 						for (i = 0; i < phraseTerms.length - 1; i++) {
@@ -318,9 +337,15 @@ public abstract class DependenceScoreModifier  implements DocumentScoreModifier 
 								default:
 									combinedPhraseQTWWeight = 1.0d;
 								}
-			
-								double s = scoreFDSD(SD, ips[i], ips[j], avgDocLen);
-								scores[k] += w_u * combinedPhraseQTWWeight * s;
+								if (UNORDERED){
+									double s = scoreFDSD(false, ips[i], ips[j], avgDocLen);
+									scores[k] += w_u * combinedPhraseQTWWeight * s;
+								}
+								if (ORDERED){
+									double s = scoreFDSD(true, ips[i], ips[j], avgDocLen);
+									s += scoreFDSD(true, ips[j], ips[i], avgDocLen);
+									scores[k] += w_u * combinedPhraseQTWWeight * s;
+								}
 							}
 						}
 					}

@@ -52,13 +52,20 @@ public class MRFDependenceScoreModifier extends DependenceScoreModifier {
 		final double mu = MU;
 		double docLength = (double)_docLength;
 		double tf = (double)matchingNGrams;
-		return w_o * (Idf.log(1 + (tf/(mu * (defaultCf / super.numTokens))) ) + Idf.log(mu/(docLength+mu)));
+		double score = 0d;
+		if (dependency.equals("FD"))
+			score = w_u * (Idf.log(1 + (tf/(mu * (defaultCf / super.numTokens))) ) + Idf.log(mu/(docLength+mu)));
+		else if (dependency.equals("SD"))
+			score = w_o * (Idf.log(1 + (tf/(mu * (defaultCf / super.numTokens))) ) + Idf.log(mu/(docLength+mu)));
+		return score;
 	}
 
 	public void setCollectionStatistics(CollectionStatistics cs, Index _index) {
 		super.setCollectionStatistics(cs, _index);
 		w_o = Double.parseDouble(ApplicationSetup.getProperty("proximity."+super.ngramLength+".w_o", 
 				ApplicationSetup.getProperty("proximity.w_o", "1.0d")));
+		w_u = Double.parseDouble(ApplicationSetup.getProperty("proximity."+super.ngramLength+".w_u", 
+				ApplicationSetup.getProperty("proximity.w_u", "1.0d")));
 		//these statistics are as used by Ivory system
 		defaultDf = ((double) cs.getNumberOfDocuments())  / 100.0d;
 		defaultCf = defaultDf * 2;

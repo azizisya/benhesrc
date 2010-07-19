@@ -30,9 +30,10 @@ package org.terrier.matching.dsms;
 
 import org.terrier.matching.MatchingQueryTerms;
 import org.terrier.matching.ResultSet;
-import org.terrier.statistics.GammaFunction;
 import org.terrier.structures.Index;
 import org.terrier.utility.ApplicationSetup;
+
+import uk.ac.gla.terrier.statistics.GammaFunction;
 
 /**
  * Implements the pBiL and pBil2 DFR-based dependence models. For more information, see 
@@ -43,7 +44,7 @@ import org.terrier.utility.ApplicationSetup;
  * <b>Properties</b>
  * <ul>
  * <li><i>See properties for DependenceScoreModifier</i></li>
- * <li><tt>proximity.norm2</tt> - should Normalisation2 be applied?, defaults to true</li>
+ * <li><tt>proximity.norm2</tt> - should Normalisation2 be applied?, defaults to false</li>
  * <li><tt>proximity.norm2.c</tt> - c value for Normalisation2, defaults to 1.0</li>
  * </ul>
  * 
@@ -53,11 +54,11 @@ import org.terrier.utility.ApplicationSetup;
 public class DFRDependenceScoreModifier extends DependenceScoreModifier {
 	
 	protected static final double REC_LOG_2 = 1.0d / Math.log(2.0d);
-	protected static final GammaFunction gf = GammaFunction.getGammaFunction();
+	protected static final GammaFunction gf = new GammaFunction();
 	
 	/** whether to apply Normalisation 2 */
 	protected boolean norm2 = Boolean.parseBoolean(ApplicationSetup
-			.getProperty("proximity.norm2", "true"));
+			.getProperty("proximity.norm2", "false"));
 	protected double ngramC;
 	
 	public DFRDependenceScoreModifier() {
