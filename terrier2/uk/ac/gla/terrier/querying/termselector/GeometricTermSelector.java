@@ -146,6 +146,11 @@ public class GeometricTermSelector extends TermSelector {
 			terms = null;
 		}
 	}
+	
+	public void assignTermWeights(TIntIntHashMap[] termidFreqMap, WeightingModel QEModel, 
+			TIntIntHashMap bgTermidFreqMap, TIntIntHashMap bgTermidDocfreqMap){
+		// TODO: to implement
+	}
 
 
 	@Override

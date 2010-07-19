@@ -9,7 +9,11 @@ protected KernelFunction kernel;
 	public Triangle(){
 		super();
 		kernel = KernelFunction.getKernelFunction("TriangleKernel");
-		kernel.setParameter(Double.parseDouble(ApplicationSetup.getProperty("proximity.ngram.length", "5"))/2);
+		double wSize = Double.parseDouble(ApplicationSetup.getProperty("proximity.ngram.length", "5"));
+		if (wSize == 0)
+			kernel.setParameter(1000d);
+		else
+			kernel.setParameter(wSize-1);
 	}
 	
 	protected double getProbability(int minDist){

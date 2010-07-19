@@ -129,7 +129,7 @@ public class QueryExpansion implements PostProcess {
 		/*if (QEModel.PerDocQE)
 			expTerms = this.expandPerDoc(feedbackDocIDs, query, numberOfTermsToReweight, index, QEModel, selector);
 		else*/
-			expTerms = this.expandFromDocuments(feedbackDocIDs, query, numberOfTermsToReweight, index, QEModel, selector);
+			expTerms = expandFromDocuments(feedbackDocIDs, query, numberOfTermsToReweight, index, QEModel, selector);
 		this.mergeWithExpandedTerms(expTerms, query);
 	}
 	
@@ -195,7 +195,13 @@ public class QueryExpansion implements PostProcess {
 		}
 		setQueryExpansionModel(WeightingModel.getWeightingModel(qeModel));
 		if(logger.isInfoEnabled()){
-			logger.info("query expansion model: " + QEModel.getInfo());
+			try{
+				logger.info("query expansion model: " + QEModel.getInfo());
+			}catch(NullPointerException e){
+				logger.debug("qemodel: "+qeModel+", model object: "+QEModel);
+				e.printStackTrace();
+				System.exit(1);
+			}
 		}
 		MatchingQueryTerms queryTerms = ((Request)q).getMatchingQueryTerms();
 		if (queryTerms == null)
@@ -251,7 +257,7 @@ public class QueryExpansion implements PostProcess {
 	 * @return
 	 * @deprecated
 	 */
-	public static ExpansionTerm[] expandPerDoc(
+	public ExpansionTerm[] expandPerDoc(
 			int[] docIDs, 
 			MatchingQueryTerms query, 
 			int numberOfTermsToReweight,
@@ -303,7 +309,7 @@ public class QueryExpansion implements PostProcess {
 		return expandedTerms;
 	}
 	
-	public static ExpansionTerm[] expandFromDocuments(
+	public ExpansionTerm[] expandFromDocuments(
 			int[] docIDs, 
 			MatchingQueryTerms query, 
 			int numberOfTermsToReweight,
