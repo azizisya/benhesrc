@@ -17,7 +17,7 @@ public abstract class ProximityModel implements Serializable{
 			final int[] blocksOfTerm2, int start2, int end2, int wSize, int docLength);
 	
 	public static ProximityModel getProximityModel(String name){
-		String prefix = "uk.ac.gla.terrier.matching.models.proximity.";
+		String prefix = "org.terrier.matching.models.proximity.";
 		if (name.indexOf('.')<0)
 			name = prefix.concat(name);
 		ProximityModel model = null;
@@ -31,7 +31,7 @@ public abstract class ProximityModel implements Serializable{
 	}
 	
 	public static ProximityModel getDefaultProximityModel(){
-		String name = ApplicationSetup.getProperty("proximity.model.name", "FD");
+		String name = ApplicationSetup.getProperty("proximity.model.name", "NC");
 		return getProximityModel(name);
 	}
 }
