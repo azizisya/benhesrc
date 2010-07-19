@@ -10,17 +10,14 @@ import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 import org.terrier.matching.MatchingQueryTerms;
-import org.terrier.matching.ResultSet;
 import org.terrier.matching.models.queryexpansion.QueryExpansionModel;
 import org.terrier.structures.ExpansionTerm;
 import org.terrier.structures.Index;
-import org.terrier.structures.Lexicon;
 import org.terrier.structures.LexiconEntry;
-import org.terrier.utility.ApplicationSetup;
 
 import uk.ac.gla.terrier.statistics.Statistics;
 
-public class RM3TermSelector extends TermSelector{
+public class RM3TermSelector extends PDWTermSelector{
 	/** The logger used */
 	private static Logger logger = Logger.getRootLogger();
 	
@@ -30,13 +27,6 @@ public class RM3TermSelector extends TermSelector{
 	
 	public RM3TermSelector(Index index) {
 		super(index);
-	}
-
-	@Override
-	public void assignTermWeights(ResultSet resultSet, int feedbackSetSize, QueryExpansionModel QEModel, Lexicon bgLexicon){
-		int[] docids = resultSet.getDocids();
-		feedbackSetSize = Math.min(feedbackSetSize, docids.length);
-		assignTermWeights(Arrays.copyOf(docids, feedbackSetSize), QEModel, bgLexicon);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -210,40 +200,5 @@ public class RM3TermSelector extends TermSelector{
 					+ Rounding.toString(query.getTermWeight(entry.getKey()), 4));
 			}*/
 		}
-	}
-
-	@Override
-	public void assignTermWeights(int[] docids, QueryExpansionModel QEModel, Lexicon bgLexicon) {
-		int effDocuments = docids.length;
-		TermSelector selector = TermSelector.getTermSelector("DFRTermSelector", index);
-		selector.setMetaInfo("normalize.weights", "false");
-		
-		TIntIntHashMap[] termidFreqMaps = new TIntIntHashMap[effDocuments];
-		TIntIntHashMap bgTermidFreqMap = new TIntIntHashMap();
-		TIntIntHashMap bgTermidDocfreqMap = new TIntIntHashMap();
-		TIntHashSet termidSet = new TIntHashSet();
-		for (int i=0; i<effDocuments; i++){
-			termidFreqMaps[i] = this.extractTerms(docids[i]);
-			termidSet.addAll(termidFreqMaps[i].keys());
-		}
-		
-		int[] termids = termidSet.toArray();
-		termidSet.clear(); termidSet = null;
-		
-		for (int termid : termids){
-			LexiconEntry lexEntry = (LexiconEntry)bgLexicon.getLexiconEntry(termid).getValue();
-			if (lexEntry!=null){
-				bgTermidFreqMap.put(termid, lexEntry.getFrequency());
-				bgTermidDocfreqMap.put(termid, lexEntry.getDocumentFrequency());
-			}
-		}
-		
-		this.assignTermWeights(termidFreqMaps, QEModel, bgTermidFreqMap, bgTermidDocfreqMap);
-		for (int i=0; i<effDocuments; i++){
-			termidFreqMaps[i].clear(); termidFreqMaps[i] = null;
-		}
-		bgTermidFreqMap.clear(); bgTermidFreqMap = null; 
-		bgTermidDocfreqMap.clear(); bgTermidDocfreqMap = null;
-		termids = null;
 	}
 }
