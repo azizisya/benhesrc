@@ -1,7 +1,9 @@
 package org.terrier.matching.dsms;
 
+import gnu.trove.THashMap;
 import gnu.trove.THashSet;
 import gnu.trove.TIntDoubleHashMap;
+import gnu.trove.TIntHashSet;
 import gnu.trove.TIntObjectHashMap;
 
 import java.io.IOException;
@@ -58,22 +60,24 @@ import org.terrier.utility.ApplicationSetup;
  * <li><tt>3</tt>: phraseQTW = min(qtw1, qtw2)</li>
  * <li><tt>4</tt>: phraseQTW = max(qtw1, qtw2)</li>
  * </ol>
- * @author Vassilis Plachouras
+ * @author Ben He
  * @version $Revision: 1.1 $
  */
-public class GeometricScoreModifier implements DocumentScoreModifier {
+public class ProximityDSM implements DocumentScoreModifier {
 	/** The logger used */
 	private static Logger logger = Logger.getRootLogger();
 	
 	public Object clone()
 	{
-		return new GeometricScoreModifier(phraseTerms);
+		return new ProximityDSM(phraseTerms);
 	}
 
 	protected final GammaFunction gf = new GammaFunction();
 	protected static final double REC_LOG_2 = 1.0d / Math.log(2.0d);
 	
 	protected boolean CACHE_POSTINGS = Boolean.parseBoolean(ApplicationSetup.getProperty("cache.postings", "false"));
+	
+	protected String dependency = ApplicationSetup.getProperty("proximity.dependency.type", "SD");
 	
 	protected Index index = null;
 	protected DocumentIndex doi;
@@ -92,7 +96,7 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 	// protected String dependency = ApplicationSetup.getProperty("proximity.dependency.type", "FD");
 	protected boolean ORDERED;
 	protected boolean UNORDERED;
-	protected boolean onlyHighWeightQTerms = Boolean.parseBoolean(ApplicationSetup.getProperty("proximity.high.weight.terms.only", "true"));
+	protected boolean onlyHighWeightQTerms = Boolean.parseBoolean(ApplicationSetup.getProperty("proximity.high.weight.terms.only", "false"));
 	protected final int phraseQTWfnid = Integer.parseInt(ApplicationSetup.getProperty("proximity.qtw.fnid", "1"));
 
  	/** weight of unigram model */
@@ -107,12 +111,12 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 	/** A list of the strings of the phrase terms. */
 	protected String[] phraseTerms;
 
-	public GeometricScoreModifier() { } 
-	public GeometricScoreModifier(final String[] pTerms) {
+	public ProximityDSM() { } 
+	public ProximityDSM(final String[] pTerms) {
 		phraseTerms = pTerms;
 	}
 
-	public GeometricScoreModifier(final String[] pTerms, boolean r) {
+	public ProximityDSM(final String[] pTerms, boolean r) {
 		this(pTerms);
 	}
 
@@ -227,7 +231,7 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 	}*/
 	
 	public void computeProximityScore(String term1, String term2, double phraseTermWeight1, double phraseTermWeight2, double[] scores,
-			double[] score_u, double[] score_o, int[] docids, double ngramC, int ngramLength, boolean cache){
+			double[] score_u, double[] score_o, int[] docids, double ngramC, int ngramLength, boolean cache) throws IOException{
 		double combinedPhraseQTWWeight = 1d;
 		switch (phraseQTWfnid) {
 			case 1: combinedPhraseQTWWeight = 0.5d * phraseTermWeight1 + 0.5d * phraseTermWeight2; 
@@ -340,16 +344,15 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 		ngramFrequencies.clear(); ngramFrequencies = null;
 		ngramFrequencies_o1.clear(); ngramFrequencies_o1 = null;
 		ngramFrequencies_o2.clear(); ngramFrequencies_o2 = null;
-		System.gc();
+		// System.gc();
 	}
 	
 	public void assignScores(double[] score_prox, int[] docids, double ngramC, 
 			TIntDoubleHashMap ngramFreqMap, int ngramCollFreq, int ngramDocFreq, double keyFrequency){
 		int n = docids.length;
-		model.setAverageDocumentLength(this.avgDocLen);
-		model.setParameter(ngramC);
-		model.setTermFrequency(ngramCollFreq);
+		model.setBackgroundStatistics(this.index.getCollectionStatistics());
 		model.setDocumentFrequency(ngramDocFreq);
+		model.setTermFrequency(ngramCollFreq);
 		model.setKeyFrequency(keyFrequency);
 		int modifiedCounter = 0;
 		for (int k=0; k<n; k++){
@@ -379,11 +382,13 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 				final double score = model.score(matchingNGrams, numberOfNGrams);
 				if (Double.isInfinite(score) || Double.isNaN(score)) {
 					// logger.warn("docid: " + docids[k] + ", docLength:" + docLength + ", matchingNGrams: " + matchingNGrams + ", original score: " + scores[k] + "avgdoclen = "+ avgDocLen);
-				} else
+				} else{
 					score_prox[k] += score;
-				modifiedCounter++;
+					modifiedCounter++;
+				}
 			}
 		}
+		// System.err.println("modified: "+modifiedCounter);
 	}
 	
 	public void setIndex(Index index){
@@ -395,6 +400,18 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 		avgDocLen =  ((double)(numTokens - numDocs *(ngramLength-1))) / (double)numDocs;
 		// avgDocLen_SD = ((double)(numTokens - numDocs*(ngramLength - 1))) / (double)numDocs;
 		lexicon = index.getLexicon();
+	}
+	
+	public static boolean isSD(THashMap<String, TIntHashSet> termPosMap, String term1, String term2){
+		int[] pos1 = termPosMap.get(term1).toArray();
+		int[] pos2 = termPosMap.get(term2).toArray();
+		done: for (int idx1 : pos1)
+			for (int idx2 : pos2){
+				if (Math.abs(idx2-idx1) == 1){
+					return true;
+				}
+			}
+		return false;
 	}
 	
 	/**
@@ -457,21 +474,26 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 					// A phrase term should appear in no more than 5% of documents in the collection.
 					// This is to reduce memory cost.
 					LexiconEntry le = lexicon.getLexiconEntry(t);
-					if (le!=null && le.getDocumentFrequency() < this.numDocs/20)
+					//if (le!=null && le.getDocumentFrequency() < this.numDocs/20)
 						proxterms.add(t);
 				}
 			}
 			phraseTerms = proxterms.toArray(new String[0]);
 		}
 		
+		if (phraseTerms.length <= 1){
+			logger.debug("Only one phrase term. Skip proximityDSM.");
+			return false;
+		}
+		
 		// keep only terms appear in less than 5% of documents in the collection
 		THashSet<String> phraseTermSet = new THashSet<String>();
 		for (String term : phraseTerms){
-			int df = lexicon.getLexiconEntry(term).getDocumentFrequency();
-			if ((double)df/this.numDocs <= 0.05d)
-				phraseTermSet.add(term);
-			else
-				logger.debug(term+" removed from phrase terms for high document frequency.");
+			//int df = lexicon.getLexiconEntry(term).getDocumentFrequency();
+			//if ((double)df/this.numDocs <= 0.05d)
+			phraseTermSet.add(term);
+			//else
+				//logger.debug(term+" removed from phrase terms for high document frequency.");
 		}
 		phraseTerms = phraseTermSet.toArray(new String[phraseTermSet.size()]);
 		
@@ -489,12 +511,16 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 		
 		final double ngramC = Double.parseDouble(ApplicationSetup.getProperty("proximity.ngram.c","1.0d"));
 		
+		// THashMap<String, TIntHashSet> termPosMap = MatchingQueryTerms.getTermPositions(terms.getQuery().toString());
+		
 		ORDERED = Boolean.parseBoolean(ApplicationSetup.getProperty("proximity.ordered", "false"));
 		UNORDERED = Boolean.parseBoolean(ApplicationSetup.getProperty("proximity.unordered", "true"));
 		w_u = (UNORDERED)?(Double.parseDouble(ApplicationSetup.getProperty("proximity.w_u","1.0d"))):(0d);
 		w_t = Double.parseDouble(ApplicationSetup.getProperty("proximity.w_t","1.0d"));
 		w_o = (ORDERED)?(Double.parseDouble(ApplicationSetup.getProperty("proximity.w_o","1.0d"))):(0d);
-		logger.debug("w_t: "+w_t+", w_u: "+w_u+", w_o: "+w_o+", fnid: "+phraseQTWfnid+", ngramc: "+ngramC+", w_size: "+this.ngramLength);
+		dependency = ApplicationSetup.getProperty("proximity.dependency.type", "SD");
+		logger.debug("Dependency: "+this.dependency+", w_t: "+w_t+", w_u: "+w_u+", w_o: "+w_o+", fnid: "+phraseQTWfnid+", ngramc: "+
+				ngramC+", w_size: "+this.ngramLength);
 		//ordered dependence scores
 		double[] score_o = null;
 		if (ORDERED)
@@ -508,8 +534,22 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 			for (int j=i+1; j<phraseLength; j++) {
 				term1 = phraseTerms[i];
 				term2 = phraseTerms[j];
-				computeProximityScore(term1, term2, phraseTermWeights[i], phraseTermWeights[j], scores, score_u, score_o, docids, 
-							ngramC, ngramLength, this.CACHE_POSTINGS);
+				if (dependency.equals("SD")){
+					// if (ProximityDSM.isSD(termPosMap, term1, term2))
+					if (j==i+1)
+						try{
+							computeProximityScore(term1, term2, phraseTermWeights[i], phraseTermWeights[j], scores, score_u, score_o, docids, 
+									ngramC, ngramLength, this.CACHE_POSTINGS);
+						}catch(IOException ioe){
+							ioe.printStackTrace();
+						}
+				}else if (dependency.equals("FD"))
+					try{
+						computeProximityScore(term1, term2, phraseTermWeights[i], phraseTermWeights[j], scores, score_u, score_o, docids, 
+								ngramC, ngramLength, this.CACHE_POSTINGS);
+					}catch(IOException ioe){
+						ioe.printStackTrace();
+					}
    			}
 		}
 		for (int k=0; k<docids.length; k++) {
@@ -517,22 +557,34 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 				modifiedCounter++;
 			if (combinedModel){
 				scores[k] = w_t * scores[k];
-				if (UNORDERED)
+				if (UNORDERED){
+					if (model.ACCEPT_NEGATIVE_SCORE)
+						score_u[k]=Math.pow(2, score_u[k]);
 					scores[k] += w_u * score_u[k];
-				if (ORDERED)
-					scores[k] += w_t * score_o[k];
+				}
+				if (ORDERED){
+					if (model.ACCEPT_NEGATIVE_SCORE)
+						score_o[k]=Math.pow(2, score_o[k]);
+					scores[k] += w_o * score_o[k];
+				}
 			}
 			else{
 				scores[k] = 0d;
-				if (UNORDERED)
+				if (UNORDERED){
+					if (model.ACCEPT_NEGATIVE_SCORE)
+						score_u[k]=Math.pow(2, score_u[k]);
 					scores[k] += w_u * score_u[k];
-				if (ORDERED)
-					scores[k] += w_t * score_o[k];
+				}
+				if (ORDERED){
+					if (model.ACCEPT_NEGATIVE_SCORE)
+						score_o[k]=Math.pow(2, score_o[k]);
+					scores[k] += w_o * score_o[k];
+				}
 			}
 		}
 		if (this.CACHE_POSTINGS)
 			postingsCache.clear();
-		logger.debug("Modifered scores for "+modifiedCounter+" documents.");
+		logger.debug("Modified scores for "+modifiedCounter+" documents.");
 		//returning true, assuming that we have modified the scores of documents		
 		// return true;
 		return (modifiedCounter>0);
