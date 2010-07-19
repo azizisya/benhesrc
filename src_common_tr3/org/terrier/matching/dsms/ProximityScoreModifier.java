@@ -62,7 +62,7 @@ import org.terrier.utility.Distance;
  * @version $Revision: 1.1 $
  * @deprecated
  */
-public class ProximityScoreModifier extends GeometricScoreModifier {
+public class ProximityScoreModifier extends ProximityDSM {
 	/** The logger used */
 	private static Logger logger = Logger.getRootLogger();
 	

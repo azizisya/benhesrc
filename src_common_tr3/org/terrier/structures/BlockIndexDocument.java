@@ -1,5 +1,8 @@
 package org.terrier.structures;
 
+import gnu.trove.TIntHashSet;
+import gnu.trove.TIntIntHashMap;
+
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -12,6 +15,72 @@ public class BlockIndexDocument {
 	
 	protected int docid;
 	
+	public BlockIndexDocument(Index index, int docid){
+		this.index = index;
+		this.docid = docid;
+	}
+	
+	public TIntIntHashMap getTermidFreqMap(){
+		int[][] pointers = null;
+		try{
+			pointers = index.getDirectIndex().getTerms(docid);
+		}catch(IOException ioe){
+			ioe.printStackTrace();
+		}
+		TIntIntHashMap map = new TIntIntHashMap();
+		for (int i=0; i<pointers[0].length; i++)
+			map.put(pointers[0][i], pointers[1][i]);
+		return map;
+	}
+	
+	/**
+	 * Get the terms that are no further than wSize tokens from any of the query terms.
+	 * @param queryTermids
+	 * @param wSize
+	 * @return
+	 */
+	public int[] getProximityTerms(int[] queryTermids, int wSize){
+		int[][] pointers = null;
+		try{
+			pointers = index.getDirectIndex().getTerms(docid);
+		}catch(IOException ioe){
+			ioe.printStackTrace();
+		}
+		// map from positions to termids
+		int[] sortedTermids = mapFromPositions2Termids(pointers);
+		TIntHashSet termidSet = new TIntHashSet();
+		TIntHashSet queryTermidSet = new TIntHashSet();
+		queryTermidSet.addAll(queryTermids);
+		
+		for (int i=0; i<sortedTermids.length; i++){
+			if (queryTermidSet.contains(sortedTermids[i])){
+				int left = Math.max(0, i-wSize+1);
+				for (int j=left; j<i; j++)
+					if (!queryTermidSet.contains(sortedTermids[j]))
+						termidSet.add(sortedTermids[j]);
+				int right = Math.min(sortedTermids.length, i+wSize);
+				for (int j=i+1; j<right; j++)
+					if (!queryTermidSet.contains(sortedTermids[j]))
+						termidSet.add(sortedTermids[j]);
+			}
+		}
+		
+		queryTermidSet.clear(); queryTermidSet = null;
+		return termidSet.toArray();
+	}
+	
+	protected static int[] mapFromPositions2Termids(int[][] pointers){
+		int[] sortedTermids = new int[pointers[4].length];
+		int blockid = 0;
+		for (int i=0; i<pointers[0].length; i++){
+			int blockFreq = pointers[3][i];
+			for (int j=0; j<blockFreq; j++){
+				sortedTermids[pointers[4][blockid++]] = pointers[0][i];
+			}
+		}
+		return sortedTermids;
+	}
+	
 	public static TextWindow[] segmentDocument(Index index, int docid, int wSize){
 		ArrayList<TextWindow> txtWindowList = new ArrayList<TextWindow>();
 		// get document pointers
@@ -22,14 +91,7 @@ public class BlockIndexDocument {
 			ioe.printStackTrace();
 		}
 		// map from positions to termids
-		int[] sortedTermids = new int[pointers[4].length];
-		int blockid = 0;
-		for (int i=0; i<pointers[0].length; i++){
-			int blockFreq = pointers[3][i];
-			for (int j=0; j<blockFreq; j++){
-				sortedTermids[pointers[4][blockid++]] = pointers[0][i];
-			}
-		}
+		int[] sortedTermids = mapFromPositions2Termids(pointers);
 		// initialize each window
 		int[] termids = pointers[0];
 		
@@ -80,14 +142,7 @@ public class BlockIndexDocument {
 			ioe.printStackTrace();
 		}
 		// map from positions to termids
-		int[] sortedTermids = new int[pointers[4].length];
-		int blockid = 0;
-		for (int i=0; i<pointers[0].length; i++){
-			int blockFreq = pointers[3][i];
-			for (int j=0; j<blockFreq; j++){
-				sortedTermids[pointers[4][blockid++]] = pointers[0][i];
-			}
-		}
+		int[] sortedTermids = mapFromPositions2Termids(pointers);
 		// initialize each window
 		int[] termids = pointers[0];
 		

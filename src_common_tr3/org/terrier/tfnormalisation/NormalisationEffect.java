@@ -9,7 +9,6 @@ import org.terrier.structures.CollectionStatistics;
 import org.terrier.utility.*;
 
 import uk.ac.gla.terrier.statistics.Statistics;
-import uk.ac.gla.terrier.utility.SystemUtility;
 
 /**
  *
