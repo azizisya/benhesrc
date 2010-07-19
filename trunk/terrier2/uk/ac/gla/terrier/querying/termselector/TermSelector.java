@@ -5,6 +5,7 @@ import java.util.Arrays;
 import gnu.trove.THashMap;
 import gnu.trove.THashSet;
 import gnu.trove.TIntHashSet;
+import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntObjectHashMap;
 
 import org.apache.log4j.Logger;
@@ -36,6 +37,8 @@ public abstract class TermSelector {
 	protected InvertedIndex ii;
 	
 	protected int feedbackSetLength;
+	
+	protected int feedbackSetSize;
 	
 	protected ResultSet resultSet;
 	
@@ -129,17 +132,51 @@ public abstract class TermSelector {
 	
 	protected void getTerms(int[] docids){
 		this.feedbackSetLength = 0;
+		this.feedbackSetSize = 0;
 		termMap = new TIntObjectHashMap<ExpansionTerm>();
 		for (int docid : docids) {
 			int[][] terms = di.getTerms(docid);
 			if (terms == null)
 				logger.warn("document "+"("+docid+") not found");
 			else{
+				this.feedbackSetSize++;
 				feedbackSetLength += terms[0].length;
 				for (int j = 0; j < terms[0].length; j++)
 					this.insertTerm(terms[0][j], (double)terms[1][j]);
 			}
 		}
+	}
+	
+	protected TIntIntHashMap extractTerms(int docid){
+		TIntIntHashMap termidFreqMap = new TIntIntHashMap();
+		int[][] terms = di.getTerms(docid);
+		if (terms == null)
+			logger.warn("document "+"("+docid+") not found");
+		else{
+			for (int j = 0; j < terms[0].length; j++)
+				termidFreqMap.put(terms[0][j], terms[1][j]);
+		}
+		return termidFreqMap;
+	}
+	
+	protected void getTerms(TIntIntHashMap[] termidFreqMaps){
+		// logger.debug("termidFreqMaps.length: "+termidFreqMaps.length);
+		// logger.debug("termidFreqMaps[0].size(): "+termidFreqMaps[0].size());
+		this.feedbackSetLength = 0;
+		termMap = new TIntObjectHashMap<ExpansionTerm>();
+		for (TIntIntHashMap map : termidFreqMaps){
+			if (map.size()!=0)
+				this.feedbackSetSize++;
+			int[] termids = map.keys();
+			for (int termid : termids){
+				final int freq = map.get(termid);
+				if (freq>0){
+					feedbackSetLength += freq;
+					this.insertTerm(termid, (double)freq);
+				}
+			}
+		}
+		// logger.debug("termMap.size(): "+termMap.size());
 	}
 	
 	/**
@@ -193,6 +230,14 @@ public abstract class TermSelector {
 	
 	
 	public abstract void assignTermWeights(int[] docids, WeightingModel QEModel, Lexicon bgLexicon);
+	
+	public abstract void assignTermWeights(TIntIntHashMap[] termidFreqMap, WeightingModel QEModel, 
+		TIntIntHashMap bgTermidFreqMap, TIntIntHashMap bgTermidDocfreqMap);
+	
+	public void setOriginalQueryTermids(int[] termids){
+		originalQueryTermidSet = new TIntHashSet();
+		originalQueryTermidSet.addAll(termids);
+	}
 	
 	public void setOriginalQueryTerms(String[] termStrings){
 		this.originalQueryTermidSet = new TIntHashSet();
