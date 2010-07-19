@@ -2,10 +2,10 @@
 <classpath>
 	<classpathentry kind="src" path=""/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/latest/log4j-1.2.9.jar"/>
-	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/latest/trove-2.0rc1.jar"/>
-	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/OptimizationJ2SEDemo.jar"/>
-	<classpathentry kind="lib" path="/users/grad/ben/workspace/lib/ireval.jar"/>
+	<classpathentry kind="lib" path="/home/ben/workspace/lib/log4j.jar"/>
+	<classpathentry kind="lib" path="/home/ben/workspace/lib/terrier3_lib/trove-2.0.2.jar"/>
+	<classpathentry kind="lib" path="/home/ben/workspace/lib/OptimizationJ2SEDemo.jar"/>
+	<classpathentry kind="lib" path="/home/ben/workspace/lib/ireval.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/terrier3"/>
 	<classpathentry kind="output" path=""/>
 </classpath>

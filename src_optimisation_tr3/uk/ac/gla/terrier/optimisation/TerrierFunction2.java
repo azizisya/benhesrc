@@ -383,11 +383,11 @@ public class TerrierFunction2 implements OneVariableFunction, ManyVariableFuncti
 				try{
 					if (evalMeasure.equals("statMAP_on_valid_topics"))
 					//IOException occurs here, perhaps java-vm process to big to fork?
-						evaluation = r.exec(evalProgram + " " + ApplicationSetup.getProperty("eval.option", "").replaceAll(",", " ")
-								+ " " + qrelsFile + " " +filename+" statMAP no");
+						evaluation = r.exec(evalProgram + " " + qrelsFile + " " +filename+" statMAP no "+
+								ApplicationSetup.getProperty("eval.option", "").replaceAll(",", " "));
 					else
-						evaluation = r.exec(evalProgram + " " + ApplicationSetup.getProperty("eval.option", "").replaceAll(",", " ")
-								+ " " + qrelsFile + " " +filename+" "+evalMeasure+" no");
+						evaluation = r.exec(evalProgram + " " + qrelsFile + " " +filename+" "+evalMeasure+" no "+
+								ApplicationSetup.getProperty("eval.option", "").replaceAll(",", " "));
 				} catch (Exception e) {
 					lastE = e;	
 					e.printStackTrace();
