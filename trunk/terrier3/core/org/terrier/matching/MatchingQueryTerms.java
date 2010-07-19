@@ -25,6 +25,11 @@
  *   Craig Macdonald <craigm{a.}dcs.gla.ac.uk>
  */
 package org.terrier.matching;
+import gnu.trove.THashMap;
+import gnu.trove.TIntHashSet;
+import gnu.trove.TIntObjectHashMap;
+import gnu.trove.TObjectIntHashMap;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,6 +43,7 @@ import org.terrier.matching.models.WeightingModel;
 import org.terrier.querying.Request;
 import org.terrier.querying.parser.Query;
 import org.terrier.structures.EntryStatistics;
+import org.terrier.terms.BaseTermPipelineAccessor;
 /**
  * Models a query used for matching documents. It is created
  * by creating an instance of this class, and then passing it as
@@ -501,6 +507,26 @@ public class MatchingQueryTerms implements Serializable,Cloneable
 			return n.toArray(tmpModels);
 		}
 		return new WeightingModel[]{defaultWeightingModel};
+	}
+	
+	public static THashMap<String, TIntHashSet> getTermPositions(String query){
+		String[] terms = query.split(" ");
+		BaseTermPipelineAccessor pipe = BaseTermPipelineAccessor.getDefaultPipelineAccessor();
+		THashMap<String, TIntHashSet> termPosMap = new THashMap<String, TIntHashSet>();
+		int pos = 0;
+		for (int i=0; i<terms.length; i++){
+			String term = pipe.pipelineTerm(terms[i]);
+			if (term != null){
+				if (termPosMap.contains(term))
+					termPosMap.get(term).add(pos++);
+				else{
+					TIntHashSet posSet = new TIntHashSet();
+					posSet.add(pos++);
+					termPosMap.put(term, posSet);
+				}
+			}
+		}
+		return termPosMap;
 	}
 
 	/** Set the default weighting model to be used for all terms */
