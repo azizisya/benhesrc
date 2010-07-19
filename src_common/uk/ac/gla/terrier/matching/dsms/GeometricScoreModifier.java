@@ -255,9 +255,20 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 		final int postings1Length = postings1[0].length;
 		final int postings2Length = postings2[0].length;
 	
-		TIntDoubleHashMap ngramFrequencies = new TIntDoubleHashMap(docids.length);
-		TIntDoubleHashMap ngramFrequencies_o1 = new TIntDoubleHashMap(docids.length);
-		TIntDoubleHashMap ngramFrequencies_o2 = new TIntDoubleHashMap(docids.length);
+		/**
+		TIntDoubleHashMap ngramFrequencies = null;
+		if (UNORDERED)
+			ngramFrequencies = new TIntDoubleHashMap(docids.length);
+		TIntDoubleHashMap ngramFrequencies_o1 = null;
+		TIntDoubleHashMap ngramFrequencies_o2 = null;
+		if (UNORDERED){
+			ngramFrequencies_o1 = new TIntDoubleHashMap(docids.length);
+			ngramFrequencies_o2 = new TIntDoubleHashMap(docids.length);
+		}*/
+		TIntDoubleHashMap ngramFrequencies = new TIntDoubleHashMap();
+		TIntDoubleHashMap ngramFrequencies_o1 = new TIntDoubleHashMap();
+		TIntDoubleHashMap ngramFrequencies_o2 = new TIntDoubleHashMap();
+		
 		final int docidsLength = docids.length;
 		int ngramDocumentFrequency = 0;
 		int ngramCollectionFrequency = 0;
@@ -421,10 +432,7 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 		double[] scores = set.getScores();
 		int[] docids = set.getDocids();
 	
-		//ordered dependence scores
-		double[] score_o = new double[scores.length];
-		//unordered dependence scores
-		double[] score_u = new double[scores.length];
+		
 		//phraseterm - opinionTerm dependence scores
 		// double[] score_op = new double[scores.length];
 
@@ -477,6 +485,14 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
 		w_t = Double.parseDouble(ApplicationSetup.getProperty("proximity.w_t","1.0d"));
 		w_o = (ORDERED)?(Double.parseDouble(ApplicationSetup.getProperty("proximity.w_o","1.0d"))):(0d);
 		logger.debug("w_t: "+w_t+", w_u: "+w_u+", w_o: "+w_o+", fnid: "+phraseQTWfnid+", ngramc: "+ngramC+", w_size: "+this.ngramLength);
+		//ordered dependence scores
+		double[] score_o = null;
+		if (ORDERED)
+			score_o = new double[scores.length];
+		//unordered dependence scores
+		double[] score_u = null;
+		if (UNORDERED)
+			score_u = new double[scores.length];
 		int modifiedCounter = 0;
 		for (int i=0; i<phraseLength-1; i++) {
 			for (int j=i+1; j<phraseLength; j++) {
@@ -487,12 +503,22 @@ public class GeometricScoreModifier implements DocumentScoreModifier {
    			}
 		}
 		for (int k=0; k<docids.length; k++) {
-			if (score_u[k] != 0d || score_o[k]!=0d)
+			if ((UNORDERED && score_u[k] != 0d) || (ORDERED&&score_o[k]!=0d))
 				modifiedCounter++;
-			if (combinedModel)
-				scores[k] =  w_t * scores[k] +  w_u * score_u[k] + w_o * score_o[k];
-			else
-				scores[k] = w_u*score_u[k]+w_o * score_o[k];
+			if (combinedModel){
+				scores[k] = w_t * scores[k];
+				if (UNORDERED)
+					scores[k] += w_u * score_u[k];
+				if (ORDERED)
+					scores[k] += w_t * score_o[k];
+			}
+			else{
+				scores[k] = 0d;
+				if (UNORDERED)
+					scores[k] += w_u * score_u[k];
+				if (ORDERED)
+					scores[k] += w_t * score_o[k];
+			}
 		}
 		if (this.CACHE_POSTINGS)
 			postingsCache.clear();
