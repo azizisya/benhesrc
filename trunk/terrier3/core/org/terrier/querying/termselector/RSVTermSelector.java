@@ -9,61 +9,22 @@ import java.util.Arrays;
 import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
-
 import org.terrier.matching.MatchingQueryTerms;
-import org.terrier.matching.ResultSet;
 import org.terrier.matching.models.queryexpansion.QueryExpansionModel;
 import org.terrier.structures.ExpansionTerm;
 import org.terrier.structures.Index;
-import org.terrier.structures.Lexicon;
 import org.terrier.structures.LexiconEntry;
 
-import uk.ac.gla.terrier.statistics.ScoreNormaliser;
-import uk.ac.gla.terrier.statistics.Statistics;
-
-public class RocchioTermSelector extends PDWTermSelector{
-
+public class RSVTermSelector extends RocchioTermSelector{
 	/** The logger used */
 	private static Logger logger = Logger.getRootLogger();
 	
-	public RocchioTermSelector(){
+	public RSVTermSelector(){
 		super();
 	}
 	
-	public RocchioTermSelector(Index index) {
+	public RSVTermSelector(Index index) {
 		super(index);
-	}
-
-	protected void assignWeights(TIntIntHashMap[] termidFreqMaps, QueryExpansionModel QEModel, 
-			TIntIntHashMap bgTermidFreqMap, TIntIntHashMap bgTermidDocfreqMap, 
-			TIntIntHashMap termidDFMap, int[] termids,
-			TIntObjectHashMap<ExpansionTerm>[] expTermMaps){
-		int effDocuments = termidFreqMaps.length;
-		QEModel.setBackgroundStatistics(index.getCollectionStatistics());
-		
-		int[] docLength = new int[effDocuments];
-		
-		// for each of the top-ranked documents
-		for (int i=0; i<effDocuments; i++){
-			docLength[i] = Statistics.sum(termidFreqMaps[i].getValues());
-		}
-		for (int i=0; i<effDocuments; i++){
-			// assign weights for each term in each document
-			for (int termid : termids){
-				if (termidFreqMaps[i].containsKey(termid)){
-					// seen term
-					double score = QEModel.score( termidFreqMaps[i].get(termid),
-							docLength[i], 
-							bgTermidDocfreqMap.get(termid), 
-							bgTermidFreqMap.get(termid), 
-							1d);
-					ExpansionTerm term = new ExpansionTerm(termid, termidFreqMaps[i].get(termid));
-					term.setWeightExpansion(score);
-					expTermMaps[i].put(termid, term);
-					termidDFMap.adjustOrPutValue(termid, 1, 1);
-				}
-			}
-		}
 	}
 	
 	public void assignTermWeights(TIntIntHashMap[] termidFreqMaps, QueryExpansionModel QEModel, 
@@ -152,5 +113,4 @@ public class RocchioTermSelector extends PDWTermSelector{
 			}*/
 		}
 	}
-
 }
