@@ -434,7 +434,7 @@ public class ProximityDSM implements DocumentScoreModifier {
 		{
 			logger.error("ERROR: Wrong function id specified for AdhocGeometricScoreModifier");
 		}
-		String modelName = ApplicationSetup.getProperty("geo.model", "BM25");
+		String modelName = ApplicationSetup.getProperty("proximity.wmodel.name", ApplicationSetup.getProperty("geo.model", "BM25"));
 		this.model = WeightingModel.getWeightingModel(modelName);
 		if (this.index == null){
 			this.index = index;
@@ -448,6 +448,9 @@ public class ProximityDSM implements DocumentScoreModifier {
 			// avgDocLen_SD = ((double)(numTokens - numDocs*(ngramLength_SD - 1))) / (double)numDocs;
 			lexicon = index.getLexicon();
 		}
+		this.model.setMeta("BM25.k1", ApplicationSetup.getProperty("proximity.BM25.k1", "1.2d"));
+		this.model.setMeta("BM25.k3", ApplicationSetup.getProperty("proximity.BM25.k3", "8d"));
+		this.model.reloadMeta();
 		
 		// w_t = Double.parseDouble(ApplicationSetup.getProperty("proximity.w_t","1.0d"));
 		proxModel = ProximityModel.getDefaultProximityModel();
