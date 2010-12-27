@@ -68,4 +68,6 @@ public interface Model
 	public void setNumberOfPointers(double n);
 	/** Returns the current value of the parameter set using setParameter() method. */
 	public double getParameter();
+	public boolean reloadMeta();
+	public void setMeta(String key, String value);
 }
