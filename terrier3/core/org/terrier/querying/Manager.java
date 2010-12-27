@@ -513,6 +513,9 @@ public class Manager
 			{
 				wmodel.setParameter(Double.parseDouble(rq.getControl("c")));
 			}
+			wmodel.setMeta("BM25.k1", ApplicationSetup.getProperty("BM25.k1", "1.2d"));
+			wmodel.setMeta("BM25.k3", ApplicationSetup.getProperty("BM25.k3", "8d"));
+			wmodel.reloadMeta();
 			
 			Matching matching = getMatchingModel(rq.getMatchingModel());
 			
