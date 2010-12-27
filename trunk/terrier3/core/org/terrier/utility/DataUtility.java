@@ -1,5 +1,6 @@
 package org.terrier.utility;
 
+import gnu.trove.TDoubleDoubleHashMap;
 import gnu.trove.THashSet;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntDoubleHashMap;
@@ -10,6 +11,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.StringTokenizer;
 
 public class DataUtility {
@@ -173,6 +175,8 @@ public class DataUtility {
 		return map;
 	}
 	
+	
+	
 	/**
 	 * 
 	 * @param filename Data filename
@@ -188,6 +192,30 @@ public class DataUtility {
 			while ((line=br.readLine())!=null){
 				String[] tokens = line.split(" ");
 				map.put(Integer.parseInt(tokens[keyLocation]), Double.parseDouble(tokens[valueLocation]));
+			}
+			br.close();
+		}catch(IOException ioe){
+			ioe.printStackTrace();
+			System.exit(1);
+		}
+		return map;
+	}
+	
+	/**
+	 * 
+	 * @param filename Data filename
+	 * @param keyLocation index of the key column
+	 * @param valueLocation index of the value column. index is zero-based.
+	 * @return
+	 */
+	public static TDoubleDoubleHashMap loadDoubleDoubleHashMap(String filename, int keyLocation, int valueLocation){
+		TDoubleDoubleHashMap map = new TDoubleDoubleHashMap();
+		String line = null;
+		try{
+			BufferedReader br = Files.openFileReader(filename);
+			while ((line=br.readLine())!=null){
+				String[] tokens = line.split(" ");
+				map.put(Double.parseDouble(tokens[keyLocation]), Double.parseDouble(tokens[valueLocation]));
 			}
 			br.close();
 		}catch(IOException ioe){
@@ -222,6 +250,35 @@ public class DataUtility {
 			System.exit(1);
 		}
 		return map;
+	}
+	
+	public static void writeDoubleDoubleHashMap(String outputFilename, 
+			TDoubleDoubleHashMap map, boolean columns, boolean sorted){
+		double[] keys = map.keys();
+		if (sorted)
+			Arrays.sort(keys);
+		try{
+			BufferedWriter bw = (BufferedWriter)Files.writeFileWriter(outputFilename);
+			if (columns){ // gnuplot format
+				for (double key : keys){
+					bw.write(key+" "+map.get(key)+ApplicationSetup.EOL);
+				}
+			}else{// matlab format
+				StringBuilder keyS = new StringBuilder();
+				StringBuilder valueS = new StringBuilder();
+				for (double key : keys){
+					keyS.append(key+" ");
+					valueS.append(map.get(key)+" ");
+				}
+				keyS.append(ApplicationSetup.EOL);
+				valueS.append(ApplicationSetup.EOL);
+				bw.write(keyS.toString());
+				bw.write(valueS.toString());
+			}
+			bw.close();
+		}catch(IOException ioe){
+			ioe.printStackTrace();
+		}
 	}
 	
 	/**
