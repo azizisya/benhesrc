@@ -26,6 +26,8 @@
  *   Vassilis Plachouras <vassilis{a.}dcs.gla.ac.uk>
  */
 package org.terrier.matching.models;
+import gnu.trove.THashMap;
+
 import java.io.Serializable;
 
 import org.terrier.matching.Model;
@@ -66,6 +68,8 @@ public abstract class WeightingModel implements Model, Serializable,Cloneable {
 	protected double c = 1.0d;
 	/** Number of unique terms in the collection */
 	protected double numberOfUniqueTerms;	
+	
+	protected THashMap<String, String> metaMap = new THashMap<String, String>();
 
 	/** The number of distinct entries in the inverted file. This figure can be calculated
 	  * as the sum of all Nt over all terms */
@@ -288,5 +292,21 @@ public abstract class WeightingModel implements Model, Serializable,Cloneable {
 	 */
 	public double scoreUnseen(double docLength, double nT, double F_t, double keyFrequency){
 		return 0d;
+	}
+	
+	public boolean reloadMeta(){
+		return false;
+	}
+	
+	public void setMeta(String key, String value){
+		this.metaMap.put(key, value);
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	protected boolean loadMeta(){
+		return false;
 	}
 }

@@ -26,6 +26,9 @@
  *   Vassilis Plachouras <vassilis{a.}dcs.gla.ac.uk>
  */
 package org.terrier.matching.models;
+
+import org.terrier.utility.ApplicationSetup;
+
 /**
  * This class implements the Okapi BM25 weighting model. The
  * default parameters used are:<br>
@@ -50,6 +53,7 @@ public class BM25 extends WeightingModel {
 	/** A default constructor.*/
 	public BM25() {
 		super();
+		this.loadMeta();
 		b=0.75d;
 	}
 	/**
@@ -57,7 +61,7 @@ public class BM25 extends WeightingModel {
 	 * @return the name of the model
 	 */
 	public final String getInfo() {
-		return "BM25b"+b;
+		return "BM25b"+b+"k1_"+k_1+"k3_"+k_3;
 	}
 	/**
 	 * Uses BM25 to compute a weight for a term in a document.
@@ -106,6 +110,38 @@ public class BM25 extends WeightingModel {
 	 */
 	public double getParameter() {
 	    return this.b;
+	}
+	/**
+	 * @Override
+	 */
+	public boolean loadMeta(){
+		String value = null;
+		boolean flag = false;
+		if ((value = ApplicationSetup.getProperty("BM25.k1", "1.2d"))!=null){
+			this.k_1 = Double.parseDouble(value);
+			flag = true;
+		}
+		if ((value = ApplicationSetup.getProperty("BM25.k3", "8d"))!=null){
+			this.k_3 = Double.parseDouble(value);
+			flag = true;
+		}
+		System.err.println("Loaded k1 and k3. k1="+k_1+", k3="+k_3);
+		return flag;
+	}
+	
+	public boolean reloadMeta(){
+		String value = null;
+		boolean flag = false;
+		if ((value = metaMap.get("BM25.k1"))!=null){
+			this.k_1 = Double.parseDouble(value);
+			flag = true;
+		}
+		if ((value = metaMap.get("BM25.k3"))!=null){
+			this.k_3 = Double.parseDouble(value);
+			flag = true;
+		}
+		System.err.println("Reloaded k1 and k3. k1="+k_1+", k3="+k_3);
+		return flag;
 	}
 	
 }
